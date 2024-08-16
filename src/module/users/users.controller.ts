@@ -8,6 +8,7 @@ import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 export default class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
+
  @Post('createUser')
   @ApiResponse({ status: 201, description: 'Usuario creado exitosamente.' })
   @ApiResponse({ status: 400, description: 'Datos inválidos.' })
