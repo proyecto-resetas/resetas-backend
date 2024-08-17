@@ -5,7 +5,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const port = process.env.PORT || 3000;
-
+  app.setGlobalPrefix('api/v1', { exclude: ['/'] });
   app.enableCors({
     origin: '*',
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
@@ -16,12 +16,11 @@ async function bootstrap() {
     .setTitle('API RESETAS')
     .setDescription('API for get recipes unique')
     .setVersion('1.0')
-    .addTag('team one')
+    .addTag('team resetas')
     .build();
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api', app, document);
+  SwaggerModule.setup('api-doc', app, document);
 
-  app.setGlobalPrefix('/v1/api');
   await app.listen(port);
   console.log(`Application is running on: http://localhost:${port}/v1/api`);
 }
