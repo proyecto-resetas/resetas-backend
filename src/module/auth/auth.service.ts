@@ -20,8 +20,12 @@ export class AuthService {
     const user = await this.userService.create({
       email: userRegister.email,
       username: userRegister.username,
+      lastname: userRegister.lastname,
       password: hashedPassword,
-     // role: userRegister.role,
+      city: userRegister.city,
+      country: userRegister.country,
+      phone: userRegister.phone,
+      photoUrl: userRegister.photoUrl,
     });
 
     return await this.getTokens({

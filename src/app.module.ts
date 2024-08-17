@@ -14,7 +14,6 @@ import dbConfig from './persistance/persistance/db-config';
       isGlobal: true,
     }),
     PersistenceModule,
-    AuthModule,
     UsersModule,
     UtilsModule,
   ],
