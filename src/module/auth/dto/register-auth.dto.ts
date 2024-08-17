@@ -1,5 +1,5 @@
 import { Transform } from "@nestjs/class-transformer";
-import { IsEmail, IsNotEmpty, IsString, MaxLength, MinLength } from "@nestjs/class-validator";
+import { IsEmail, IsNotEmpty, IsOptional, IsString, MaxLength, MinLength } from "@nestjs/class-validator";
 import { ApiProperty } from "@nestjs/swagger";
 
 export class RegisterDto {
@@ -16,10 +16,31 @@ export class RegisterDto {
   username: string;
 
   @ApiProperty()
+  @IsString()
+  lastname: string;
+
+  @ApiProperty()
   @IsNotEmpty()
   @MinLength(8, { message: 'password should be minimmum 8' })
   @MaxLength(50, { message: 'password should be maximium 50' })
   password: string;
+
+  @ApiProperty()
+  @IsString()
+  phone: string;
+
+  @ApiProperty()
+  @IsString()
+  country: string;
+
+  @ApiProperty()
+  @IsString()
+  city: string;
+
+  @ApiProperty()
+  @IsString()
+  @IsOptional() // Photo no es obligatorio
+  photoUrl?: string;
 
 //   role: string;
 }

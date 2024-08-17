@@ -9,7 +9,9 @@ export default class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
 
- @Post('createUser')
+  @Post()
+  @ApiOperation({ summary: 'Crear un nuevo usuario' })
+  @ApiBody({ type: CreateUserDto })
   @ApiResponse({ status: 201, description: 'Usuario creado exitosamente.' })
   @ApiResponse({ status: 400, description: 'Datos inválidos.' })
   create(@Body() createUserDto: CreateUserDto) {
