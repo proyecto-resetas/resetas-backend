@@ -1,8 +1,8 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
 import { UsersService } from './users.service';
-import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
+import { CreateUserDto, UpdateUserDto } from './dto';
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+
 @ApiTags('users')
 @Controller('users')
 export default class UsersController {
@@ -20,9 +20,18 @@ export default class UsersController {
   //   return this.usersService.findAll();
   // }
 
+  @Post('email')
+  @ApiResponse({ status: 201, description: 'User found with email' })
+  @ApiResponse({ status: 400, description: 'Dates invalid.' })
+  findOne(@Param() email: string) {
+    return this.usersService.findOneByEmail(email);
+  }
+
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.usersService.findOne(id);
+  @ApiResponse({ status: 201, description: 'User found with id' })
+  @ApiResponse({ status: 400, description: 'Dates invalid.' })
+  findById(@Param('id') id: string) {
+    return this.usersService.findOneById(id);
   }
 
   // @Patch(':id')

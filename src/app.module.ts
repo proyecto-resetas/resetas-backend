@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common';
 import { AuthModule } from './module/auth/auth.module';
 import { UsersModule } from './module/users/users.module';
-import { PersistenceModule } from './persistance/persistance';
+import { PersistenceModule } from './module/persistance';
 import { ConfigModule } from '@nestjs/config';
 import { UtilsModule } from './common/utils/utils.module';
-import dbConfig from './persistance/persistance/db-config';
+import dbConfig from './module/persistance/db-config';
 
 @Module({
   imports: [
@@ -16,6 +16,7 @@ import dbConfig from './persistance/persistance/db-config';
     PersistenceModule,
     UsersModule,
     UtilsModule,
+    AuthModule,
   ],
   controllers: [],
   providers: [],
