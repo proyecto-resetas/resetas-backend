@@ -19,13 +19,17 @@ export class AuthService {
       
       const hashedPassword = await this.hashService.hash(userRegister.password);
   
+
       const user = await this.userService.create({
         ...userRegister,
+        role: 'user',
         password: hashedPassword,
       });
 
       return await this.getTokens({
         sub: user.id,
+        username: user.username,
+        role: user.role
       });
   
     } catch (error) {
@@ -50,6 +54,8 @@ export class AuthService {
 
     return await this.getTokens({
       sub: user.id,
+      username: user.username,
+      role: user.role
     });
   }
 

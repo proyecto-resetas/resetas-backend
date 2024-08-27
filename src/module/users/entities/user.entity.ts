@@ -2,11 +2,9 @@ import { IsEmail, IsEnum, IsNotEmpty, IsOptional, IsString, Length, Matches } fr
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 ///import { HydratedDocument } from "mongoose";
 import { Document } from 'mongoose';
+import { UserRole } from "src/common/guard/roles.enum";
 
-export enum UserRole {
-    USER = 'user',
-    ADMIN = 'admin',
-  }
+
 //export type UserDocument = HydratedDocument<User>;
 @Schema({ timestamps: true })
 export class User extends Document {
@@ -49,9 +47,9 @@ export class User extends Document {
   @Prop()
   photoUrl?: string;
 
-//   @IsEnum(UserRole)
-//   @Prop({ required: true, enum: UserRole, default: UserRole.USER })
-//   role?: UserRole;
+  @IsEnum(UserRole)
+  @Prop({ required: true, enum: UserRole, default: UserRole.USER })
+  role?: UserRole;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

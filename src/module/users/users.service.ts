@@ -27,16 +27,16 @@ async create(createUserDto: CreateUserDto) {
   // }
 
 async  findOneByEmail(email: string){
-     try {
+      try{
        const user = await this.userModel.findOne({ email }).exec();
        if (!user) {
          throw new HttpException(`User not found`, HttpStatus.NOT_FOUND);
        }
        return user;
 
-     } catch (error) {
-       throw new HttpException(`Error fetching user`, HttpStatus.INTERNAL_SERVER_ERROR);
-     }
+      } catch(error){
+        throw new HttpException(`Error fetching user`, HttpStatus.INTERNAL_SERVER_ERROR);
+      }
   
   }
 

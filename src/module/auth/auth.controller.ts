@@ -14,7 +14,7 @@ export class AuthController {
   @ApiResponse({ status: 400, description: 'Dates invalid.' })
   async registerUser(@Body() createAuthDto: RegisterDto) {
     const token = await this.authService.register(createAuthDto);
-    return { access_token: token.access_token };
+    return token;
   }
 
   @Post('login')  
