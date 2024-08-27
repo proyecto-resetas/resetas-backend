@@ -42,5 +42,5 @@ export class RegisterDto {
   @IsOptional() // Photo no es obligatorio
   photoUrl?: string;
 
-//   role: string;
+  role: string;
 }

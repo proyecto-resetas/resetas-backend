@@ -17,7 +17,9 @@ async function bootstrap() {
     .setDescription('API for get recipes unique')
     .setVersion('1.0')
     .addTag('team resetas')
+    .addBearerAuth()
     .build();
+
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api-doc', app, document);
 

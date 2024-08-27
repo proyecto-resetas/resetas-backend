@@ -37,6 +37,7 @@ export class CreateUserDto {
   @IsOptional() // Photo no es obligatorio
   photoUrl?: string;
 
-//   @IsString()
-//   role: string;
+  @ApiProperty()
+  @IsString()
+  role: string;
 }
