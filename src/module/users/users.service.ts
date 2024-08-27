@@ -1,4 +1,4 @@
-import { Catch, HttpException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
 import { CreateUserDto, UpdateUserDto  } from './dto'
 import { InjectModel } from '@nestjs/mongoose';
 import { User } from './entities/user.entity';
@@ -22,9 +22,6 @@ async create(createUserDto: CreateUserDto) {
   return createdUser.save();
 }
 
-  // findAll() {
-  //   return `This action returns all users`;
-  // }
 
 async  findOneByEmail(email: string){
       try{
@@ -60,11 +57,43 @@ async findOneById(id: string) {
     }
   }
 
-  // update(id: number, updateUserDto: UpdateUserDto) {
-  //   return `This action updates a #${id} user`;
-  // }
+async update(id: string, updateUserDto: UpdateUserDto) {
 
-  // remove(id: number) {
-  //   return `This action removes a #${id} user`;
-  // }
+    try {
+      const user = await this.findOneById(id);
+    if (!user) {
+        throw new HttpException(`User not found`, HttpStatus.NOT_FOUND);
+      }
+      const updatedUser = await this.userModel
+      .findByIdAndUpdate(id, updateUserDto, { new: true })
+      .exec();
+
+    if (!updatedUser) {
+      throw new NotFoundException(`User with id ${id} not found`);
+    }
+
+      return updatedUser;
+
+    } catch (error) {
+      throw new HttpException(`Error fetching user`, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+  }
+
+async remove(id: string) {
+
+    try {
+    const deleteUser = await this.userModel.findByIdAndDelete(id).exec();
+
+    if (!deleteUser) {
+      throw new NotFoundException(`User with id ${id} not found`);
+    }
+
+    return deleteUser;
+
+    } catch (error) {
+      throw new HttpException(`Error fetching user`, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+    
+  }
 }

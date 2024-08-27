@@ -1,11 +1,8 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
 import { UsersService } from './users.service';
-import { CreateUserDto} from './dto';
-import { ApiBearerAuth, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { CreateUserDto, UpdateUserDto} from './dto';
+import { ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { UserRole } from 'src/common/guard/roles.enum';
-import { JwtAuthGuard } from 'src/common/guard/jwt.guard';
-import { UserRoleGuard } from 'src/common/guard/role.guard';
-import { Roles } from 'src/common/decorators/roleGuard.decorator';
 import { Auth } from 'src/common/decorators/auth.decorator';
 
 @ApiTags('users')
@@ -19,11 +16,6 @@ export default class UsersController {
   create(@Body() createUserDto: CreateUserDto) {
     return this.usersService.create(createUserDto);
   }
-
-  // @Get()
-  // findAll() {
-  //   return this.usersService.findAll();
-  // }
   
   @Auth(UserRole.ADMIN)
   @Post(':email')
@@ -42,13 +34,17 @@ export default class UsersController {
     return this.usersService.findOneById(id);
   }
 
-  // @Patch(':id')
-  // update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
-  //   return this.usersService.update(+id, updateUserDto);
-  // }
+  @Patch(':id')
+  @ApiResponse({ status: 201, description: 'User found with id' })
+  @ApiResponse({ status: 400, description: 'Dates invalid.' })
+  update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
+    return this.usersService.update(id, updateUserDto);
+  }
 
-  // @Delete(':id')
-  // remove(@Param('id') id: string) {
-  //   return this.usersService.remove(+id);
-  // }
+  @Delete(':id')
+  @ApiResponse({ status: 201, description: 'User found with id' })
+  @ApiResponse({ status: 400, description: 'Dates invalid.' })
+  remove(@Param('id') id: string) {
+    return this.usersService.remove(id);
+  }
 }

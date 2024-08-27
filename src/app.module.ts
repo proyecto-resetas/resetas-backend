@@ -5,9 +5,6 @@ import { PersistenceModule } from './module/persistance';
 import { ConfigModule } from '@nestjs/config';
 import { UtilsModule } from './common/utils/utils.module';
 import dbConfig from './module/persistance/db-config';
-import { APP_GUARD } from '@nestjs/core';
-import { UserRoleGuard } from './common/guard/role.guard';
-import { JwtAuthGuard } from './common/guard/jwt.guard';
 
 @Module({
   imports: [
