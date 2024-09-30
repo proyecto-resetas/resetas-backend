@@ -19,18 +19,23 @@ export class AuthService {
       
       const hashedPassword = await this.hashService.hash(userRegister.password);
   
-
       const user = await this.userService.create({
         ...userRegister,
         role: 'user',
         password: hashedPassword,
       });
 
-      return await this.getTokens({
+      const tokens = await this.getTokens({
         sub: user.id,
         username: user.username,
-        role: user.role
+        role: user.role,
       });
+  
+      // Devolver el usuario completo con los tokens
+      return {
+        user,
+        ...tokens,
+      };
   
     } catch (error) {
       console.error('Error during user registration:', error);
@@ -52,11 +57,17 @@ export class AuthService {
       throw new BadRequestException('Incorrect password');
     }
 
-    return await this.getTokens({
+    const tokens = await this.getTokens({
       sub: user.id,
       username: user.username,
-      role: user.role
+      role: user.role,
     });
+
+    // Devolver el usuario completo con los tokens
+    return {
+      user,
+      ...tokens,
+    };
   }
 
 async getTokens(jwtPayload: JwtPayload): Promise<Token> {

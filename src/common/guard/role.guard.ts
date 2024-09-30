@@ -7,7 +7,6 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Observable } from 'rxjs';
-import { User } from '../../module/users/entities/user.entity';
 import { UserRole } from './roles.enum';
 import { ROLES_KEY } from '../decorators/roleGuard.decorator';
 

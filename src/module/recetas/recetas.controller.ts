@@ -14,7 +14,7 @@ export class RecetasController {
     return this.recetasService.create(createRecetaDto);
   }
 
-  @Get()
+  @Get('all')
   findAll() {
     return this.recetasService.findAll();
   }

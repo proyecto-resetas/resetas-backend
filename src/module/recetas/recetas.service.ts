@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { CreateRecetaDto } from './dto/create-receta.dto';
 import { UpdateRecetaDto } from './dto/update-receta.dto';
 import { InjectModel } from '@nestjs/mongoose';
@@ -27,8 +27,18 @@ async create(createRecipeDto: CreateRecetaDto): Promise<Recipe> {
 
 }
 
-  findAll() {
-    return `This action returns all recetas`;
+async  findAll() {
+   
+    try{
+      const recipes = await this.recipeModel.find();
+      if (!recipes) {
+        throw new HttpException(`User not found`, HttpStatus.NOT_FOUND);
+      }
+      return recipes;
+
+     } catch(error){
+       throw new HttpException(`Error fetching user`, HttpStatus.INTERNAL_SERVER_ERROR);
+     }
   }
 
   findOne(id: number) {

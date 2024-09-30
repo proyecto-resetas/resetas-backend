@@ -10,19 +10,15 @@ export class StepsService {
 
   constructor(
     @InjectModel(Step.name) private stepModel: Model<Step>
-  ){}
-async create(createStepDto: StepDto) {
-
+  ) { }
+  async create(createStepDto: StepDto) {
     const newStep = new this.stepModel(createStepDto);
     return newStep.save();
-
   }
-
-async createMultipleSteps(steps: StepDto[]): Promise<Step[]> {
-
-    return Promise.all(steps.map(step => this.create(step)));
-
-}
+  
+  async createMultipleSteps(steps: StepDto[]): Promise<Step[]> {
+  return Promise.all(steps.map(step => this.create(step)));
+  }
 
 
   findAll() {
@@ -37,19 +33,19 @@ async createMultipleSteps(steps: StepDto[]): Promise<Step[]> {
     return `This action updates a #${id} step`;
   }
 
- async remove(id: string) {
+  async remove(id: string) {
     try {
       const deleteUser = await this.stepModel.findByIdAndDelete(id).exec();
-  
+
       if (!deleteUser) {
         throw new NotFoundException(`Step with id ${id} not found`);
       }
-  
+
       return deleteUser;
-  
-      } catch (error) {
-        throw new HttpException(`Error fetching steps`, HttpStatus.INTERNAL_SERVER_ERROR);
-      }
+
+    } catch (error) {
+      throw new HttpException(`Error fetching steps`, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
   }
 
 }

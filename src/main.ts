@@ -24,6 +24,6 @@ async function bootstrap() {
   SwaggerModule.setup('api-doc', app, document);
 
   await app.listen(port);
-  console.log(`Application is running on: http://localhost:${port}/v1/api`);
+  console.log(`Application is running on: http://localhost:${port}/api/v1`);
 }
 bootstrap();

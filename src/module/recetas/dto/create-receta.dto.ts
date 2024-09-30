@@ -1,7 +1,7 @@
 import { Type } from "@nestjs/class-transformer";
 import { IsArray, IsString, ValidateNested } from "@nestjs/class-validator";
 import { ApiProperty } from "@nestjs/swagger";
-import { StepDto } from "./createStep.dto";
+import { StepDto } from "../../steps/dto/create-step.dto";
 import { Step } from "../entities/receta.entity";
 
 export class CreateRecetaDto {
@@ -17,6 +17,11 @@ export class CreateRecetaDto {
     @ApiProperty()
     ingredientsRecipe: string;
 
+    @ApiProperty()
+    imageUrl: string;
+
+    @ApiProperty()
+    price: string;
 
     @IsArray()
     @ApiProperty()

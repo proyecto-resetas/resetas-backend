@@ -18,6 +18,11 @@ export class Recipe {
     @Prop()
     ingredientsRecipe: string;
 
+    @Prop()
+    imageUrl: string;
+
+    @Prop()
+    price: string;
 
     @Prop({ type: [StepSchema], required: true })
     @IsArray()
