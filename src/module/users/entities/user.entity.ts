@@ -47,6 +47,8 @@ export class User extends Document {
   @Prop()
   photoUrl?: string;
 
+  
+
   @IsEnum(UserRole)
   @Prop({ required: true, enum: UserRole, default: UserRole.USER })
   role?: UserRole;

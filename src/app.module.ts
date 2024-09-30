@@ -5,6 +5,8 @@ import { PersistenceModule } from './module/persistance';
 import { ConfigModule } from '@nestjs/config';
 import { UtilsModule } from './common/utils/utils.module';
 import dbConfig from './module/persistance/db-config';
+import { RecetasModule } from './module/recetas/recetas.module';
+import { StepsModule } from './module/steps/steps.module';
 
 @Module({
   imports: [
@@ -17,6 +19,8 @@ import dbConfig from './module/persistance/db-config';
     UsersModule,
     UtilsModule,
     AuthModule,
+    RecetasModule,
+    StepsModule,
   ],
   controllers: [],
   
