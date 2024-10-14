@@ -1,36 +1,57 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
-import { RecetasService } from './recetas.service';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
+import { RecipesService } from './recetas.service';
 import { CreateRecetaDto } from './dto/create-receta.dto';
 import { UpdateRecetaDto } from './dto/update-receta.dto';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiResponse, ApiTags } from '@nestjs/swagger';
+import { Auth } from 'src/common/decorators/auth.decorator';
+import { UserRole } from 'src/common/guard/roles.enum';
+import { Recipe } from './entities/receta.entity';
+import { GetRecipesQueryDto } from './dto/get-recipe-query.dto';
 
 @ApiTags('recetas')
-@Controller('recetas')
+@Controller('Recipes')
 export class RecetasController {
-  constructor(private readonly recetasService: RecetasService) {}
+  constructor(private readonly recipesService: RecipesService) {}
 
-  @Post()
-  create(@Body() createRecetaDto: CreateRecetaDto) {
-    return this.recetasService.create(createRecetaDto);
+  @Auth(UserRole.ADMIN)
+  @Post('CreateRecetas')
+  @ApiResponse({ status: 201, description: 'Created Recipe' })
+  @ApiResponse({ status: 400, description: 'Dates invalid.' })
+  async create(@Body() createRecetaDto: CreateRecetaDto): Promise<Recipe> {
+  const newRecipe = await this.recipesService.create(createRecetaDto);
+  
+  console.log(newRecipe);
+  return newRecipe
   }
+
+  @ApiResponse({ status: 200, description: 'Finded Recipe' })
+  @ApiResponse({ status: 400, description: 'Dates invalid.' })
+  @Get('getRecipeFilter')
+  async getRecipes(
+    @Query() filterDto: GetRecipesQueryDto
+  ): Promise<{ recipes: Recipe[], total: number }> {
+    return this.recipesService.findRecipesCategory(filterDto);
+    }
 
   @Get('all')
   findAll() {
-    return this.recetasService.findAll();
+    return this.recipesService.findAll();
   }
 
   @Get(':id')
+  @ApiResponse({ status: 200, description: 'Finded Recipe' })
+  @ApiResponse({ status: 400, description: 'Dates invalid.' })
   findOne(@Param('id') id: string) {
-    return this.recetasService.findOne(+id);
+    return this.recipesService.findOneById(id);
   }
 
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateRecetaDto: UpdateRecetaDto) {
-    return this.recetasService.update(+id, updateRecetaDto);
+    return this.recipesService.update(+id, updateRecetaDto);
   }
 
   @Delete(':id')
   remove(@Param('id') id: string) {
-    return this.recetasService.remove(+id);
+    return this.recipesService.remove(+id);
   }
 }

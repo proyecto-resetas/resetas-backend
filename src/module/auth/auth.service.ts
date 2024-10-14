@@ -19,23 +19,25 @@ export class AuthService {
       
       const hashedPassword = await this.hashService.hash(userRegister.password);
   
-      const user = await this.userService.create({
-        ...userRegister,
-        role: 'user',
-        password: hashedPassword,
-      });
+      if (userRegister.role === 'admin' || 'user') {
 
-      const tokens = await this.getTokens({
-        sub: user.id,
-        username: user.username,
-        role: user.role,
-      });
-  
-      // Devolver el usuario completo con los tokens
-      return {
-        user,
-        ...tokens,
-      };
+        const user = await this.userService.create({
+          ...userRegister,
+          password: hashedPassword,
+        });
+
+        const tokens = await this.getTokens({
+          sub: user.id,
+          username: user.username,
+          role: user.role,
+        });
+    
+        // Devolver el usuario completo con los tokens
+        return {
+          user,
+          ...tokens,
+        };
+      }
   
     } catch (error) {
       console.error('Error during user registration:', error);

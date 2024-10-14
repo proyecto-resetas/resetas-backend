@@ -15,9 +15,13 @@ export class StepsService {
     const newStep = new this.stepModel(createStepDto);
     return newStep.save();
   }
-  
   async createMultipleSteps(steps: StepDto[]): Promise<Step[]> {
-  return Promise.all(steps.map(step => this.create(step)));
+    // Si no hay pasos, devolver un array vacío inmediatamente
+    if (steps.length === 0) {
+      return [];
+    }
+    // Si hay pasos, proceder con la creación
+    return Promise.all(steps.map(step => this.create(step)));
   }
 
 
