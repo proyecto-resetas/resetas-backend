@@ -20,7 +20,6 @@ export class RecetasController {
   async create(@Body() createRecetaDto: CreateRecetaDto): Promise<Recipe> {
   const newRecipe = await this.recipesService.create(createRecetaDto);
   
-  console.log(newRecipe);
   return newRecipe
   }
 
@@ -33,6 +32,7 @@ export class RecetasController {
     return this.recipesService.findRecipesCategory(filterDto);
     }
 
+  @Auth(UserRole.ADMIN)
   @Get('all')
   findAll() {
     return this.recipesService.findAll();
