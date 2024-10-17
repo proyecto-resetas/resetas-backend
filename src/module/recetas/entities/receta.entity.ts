@@ -1,10 +1,11 @@
 import { Type } from "@nestjs/class-transformer";
-import { IsArray, IsString, ValidateNested } from "@nestjs/class-validator";
+import { IsArray, IsNumber, IsString, ValidateNested } from "@nestjs/class-validator";
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
+import { Types } from "mongoose";
 import { Step, StepSchema } from "src/module/steps/entities/step.entity";
 
 
-@Schema()
+@Schema({ timestamps: true })
 export class Recipe {
 
     @IsString()
@@ -15,20 +16,35 @@ export class Recipe {
     @Prop()
     descriptionRecipe: string;
 
+    @IsString()
     @Prop()
     ingredientsRecipe: string;
 
+    @IsString()
     @Prop()
     imageUrl: string;
 
+    @IsString()
     @Prop()
-    price: string;
+    category: string;
+
+    @IsNumber()
+    @Prop()
+    price: number;
+
+    @IsString()
+    @Prop()
+    level: string;
 
     @Prop({ type: [StepSchema], required: true })
     @IsArray()
     @ValidateNested({ each: true })
     @Type(() => Step)
     steps: Step[];
+
+     // Relación con el usuario que creó la receta
+    @Prop({ type: Types.ObjectId, ref: 'User', required: true }) 
+    createdBy: Types.ObjectId; // Referencia al creador (usuario)
 
 }
 

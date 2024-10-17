@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { RecetasService } from './recetas.service';
+import { RecipesService } from './recetas.service';
 import { RecetasController } from './recetas.controller';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Recipe, RecipeSchema } from './entities/receta.entity';
@@ -11,7 +11,7 @@ import { StepsModule } from '../steps/steps.module';
     StepsModule,
   ],
   controllers: [RecetasController],
-  providers: [RecetasService],
-  exports: [RecetasService]
+  providers: [RecipesService],
+  exports: [RecipesService]
 })
-export class RecetasModule {}
+export class RecipesModule {}
