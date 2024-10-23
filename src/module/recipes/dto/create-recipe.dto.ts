@@ -1,8 +1,10 @@
 import { Type } from "@nestjs/class-transformer";
-import { IsArray, IsNumber, IsOptional, IsString, ValidateNested } from "@nestjs/class-validator";
+import { IsArray, IsEnum, IsNumber, IsOptional, IsString, IsUrl, ValidateNested } from "@nestjs/class-validator";
 import { ApiProperty } from "@nestjs/swagger";
 import { StepDto } from "../../steps/dto/create-step.dto";
-import { Step } from "../entities/receta.entity";
+import { Step } from "../entities/recipes.entity";
+import { IngredientsRecipeDto } from "./ingredients-recipes.dto";
+import { Level } from "../enums/level.enum";
 
 export class CreateRecetaDto {
     
@@ -14,21 +16,21 @@ export class CreateRecetaDto {
     @ApiProperty()
     descriptionRecipe: string;
 
-    @IsString()
-    @ApiProperty()
-    ingredientsRecipe: string;
+    @IsArray()
+    @ValidateNested({ each: true })
+    @Type(() => IngredientsRecipeDto)
+    ingredientsRecipe: IngredientsRecipeDto[];
 
-    @IsString()
-    @ApiProperty()
-    imageUrl: string;
+    @IsOptional()
+    @IsUrl()
+    imageUrl?: string;
 
     @IsNumber()
     @ApiProperty()
     price: number;
 
-    @IsString()
-    @ApiProperty()
-    level: string;
+    @IsEnum(Level)
+    level: Level;
 
     @IsString()
     @ApiProperty()
@@ -43,5 +45,4 @@ export class CreateRecetaDto {
     @IsString()
     @ApiProperty()
     createdBy: string;
-
 }

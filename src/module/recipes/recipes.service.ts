@@ -1,10 +1,10 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
-import { CreateRecetaDto } from './dto/create-receta.dto';
+import { CreateRecetaDto } from './dto/create-recipe.dto';
 import { UpdateRecetaDto } from './dto/update-receta.dto';
 import { InjectModel } from '@nestjs/mongoose';
-import { Recipe } from './entities/receta.entity';
+import { Recipe } from './entities/recipes.entity';
 import { Model } from 'mongoose';
-import { StepsService } from '../steps/steps.service';
+//import { StepsService } from '../steps/steps.service';
 import { GetRecipesQueryDto } from './dto/get-recipe-query.dto';
 
 @Injectable()
@@ -12,16 +12,16 @@ export class RecipesService {
 
   constructor(
     @InjectModel(Recipe.name) private recipeModel: Model<Recipe>,
-    private readonly stepService: StepsService,
+   // private readonly stepService: StepsService,
   ){}
 
 async create(createRecipeDto: CreateRecetaDto): Promise<Recipe> {
 
-   const savedSteps = await this.stepService.createMultipleSteps(createRecipeDto.steps);
+  //  const savedSteps = await this.stepService.createMultipleSteps(createRecipeDto.steps);
 
    const recipeCreate = new this.recipeModel({
      ...createRecipeDto,
-     steps: savedSteps,
+    //  steps: savedSteps,
    });
   
   return await recipeCreate.save();
