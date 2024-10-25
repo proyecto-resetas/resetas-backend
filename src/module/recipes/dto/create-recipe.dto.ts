@@ -5,6 +5,7 @@ import { StepDto } from "../../steps/dto/create-step.dto";
 import { Step } from "../entities/recipes.entity";
 import { IngredientsRecipeDto } from "./ingredients-recipes.dto";
 import { Level } from "../enums/level.enum";
+import { UtensilRecipeDto } from "./utensil-recipe.dto";
 
 export class CreateRecetaDto {
     
@@ -15,11 +16,6 @@ export class CreateRecetaDto {
     @IsString()
     @ApiProperty()
     descriptionRecipe: string;
-
-    @IsArray()
-    @ValidateNested({ each: true })
-    @Type(() => IngredientsRecipeDto)
-    ingredientsRecipe: IngredientsRecipeDto[];
 
     @IsOptional()
     @IsUrl()
@@ -35,6 +31,18 @@ export class CreateRecetaDto {
     @IsString()
     @ApiProperty()
     category: string;
+
+    @ApiProperty()
+    @IsArray()
+    @ValidateNested({ each: true })
+    @Type(() => IngredientsRecipeDto)
+    ingredientsRecipe: IngredientsRecipeDto[];
+
+    @ApiProperty()
+    @IsArray()
+    @ValidateNested({ each: true })
+    @Type(() => UtensilRecipeDto)
+    utensilRecipeDto : UtensilRecipeDto[];
 
     @IsArray()
     @ApiProperty()

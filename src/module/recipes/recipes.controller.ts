@@ -13,7 +13,7 @@ import { GetRecipesQueryDto } from './dto/get-recipe-query.dto';
 export class RecetasController {
   constructor(private readonly recipesService: RecipesService) {}
 
-  @Auth(UserRole.ADMIN)
+  //@Auth(UserRole.ADMIN)
   @Post('CreateRecipes')
   @ApiResponse({ status: 201, description: 'Created Recipe' })
   @ApiResponse({ status: 400, description: 'Dates invalid.' })
