@@ -1,11 +1,11 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
-import { RecipesService } from './recetas.service';
-import { CreateRecetaDto } from './dto/create-receta.dto';
+import { RecipesService } from './recipes.service';
+import { CreateRecetaDto } from './dto/create-recipe.dto';
 import { UpdateRecetaDto } from './dto/update-receta.dto';
 import { ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Auth } from 'src/common/decorators/auth.decorator';
 import { UserRole } from 'src/common/guard/roles.enum';
-import { Recipe } from './entities/receta.entity';
+import { Recipe } from './entities/recipes.entity';
 import { GetRecipesQueryDto } from './dto/get-recipe-query.dto';
 
 @ApiTags('recetas')
@@ -13,13 +13,13 @@ import { GetRecipesQueryDto } from './dto/get-recipe-query.dto';
 export class RecetasController {
   constructor(private readonly recipesService: RecipesService) {}
 
-  @Auth(UserRole.ADMIN)
-  @Post('CreateRecetas')
+  //@Auth(UserRole.ADMIN)
+  @Post('CreateRecipes')
   @ApiResponse({ status: 201, description: 'Created Recipe' })
   @ApiResponse({ status: 400, description: 'Dates invalid.' })
   async create(@Body() createRecetaDto: CreateRecetaDto): Promise<Recipe> {
   const newRecipe = await this.recipesService.create(createRecetaDto);
-  
+  console.log(newRecipe);
   return newRecipe
   }
 
