@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards } from '@nestjs/common';
 import { RecipesService } from './recipes.service';
 import { CreateRecetaDto } from './dto/create-recipe.dto';
 import { UpdateRecetaDto } from './dto/update-receta.dto';
@@ -7,6 +7,7 @@ import { Auth } from 'src/common/decorators/auth.decorator';
 import { UserRole } from 'src/common/guard/roles.enum';
 import { Recipe } from './entities/recipes.entity';
 import { GetRecipesQueryDto } from './dto/get-recipe-query.dto';
+import { ApiKeyGuard } from 'src/common/guard/x-api-key/x-api-key.guard';
 
 @ApiTags('recetas')
 @Controller('Recipes')

@@ -10,6 +10,8 @@ import { StepsModule } from './module/steps/steps.module';
 import { S3Module } from './common/utils/s3/s3.module';
 import { PaymentWompiModule } from './module/payment_wompi/payment_wompi.module';
 import { ApiKeyModule } from './common/utils/apikey/apikey.module';
+import { APP_GUARD } from '@nestjs/core';
+import { ApiKeyGuard } from './common/guard/x-api-key/x-api-key.guard';
 
 @Module({
   imports: [
@@ -29,6 +31,12 @@ import { ApiKeyModule } from './common/utils/apikey/apikey.module';
     ApiKeyModule,
   ],
   controllers: [],
+  // providers: [
+  //   {
+  //     provide: APP_GUARD,
+  //     useClass: ApiKeyGuard,
+  //   },
+  // ],
   
 })
 
