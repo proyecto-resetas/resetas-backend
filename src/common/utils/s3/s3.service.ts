@@ -21,7 +21,7 @@ export class S3Service {
     this.bucketName = process.env.AWS_S3_BUCKET_NAME;
   }
 
-  async uploadFile(file: Express.Multer.File): Promise<{ imageUrl: string; originalFileName: string }> {
+  async uploadFile(file): Promise<{ imageUrl: string; originalFileName: string }> {
     const fileExtension = file.originalname.split('.').pop();
     const key = `${uuidv4()}.${fileExtension}`; // Generar un nombre o id único para el archivo
 

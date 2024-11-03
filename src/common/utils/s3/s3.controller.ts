@@ -13,7 +13,7 @@ export class UploadS3Controller {
   @ApiResponse({ status: 201, description: 'Created Recipe' })
   @ApiResponse({ status: 400, description: 'Dates invalid.' })
   @UseInterceptors(FileInterceptor('file'))
-  async uploadImage(@UploadedFile() file: Express.Multer.File) {
+  async uploadImage(@UploadedFile() file) {
     const imageUrl = await this.s3Service.uploadFile(file);
     return  imageUrl ;
   }
