@@ -1,24 +1,25 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
 import { RecipesService } from './recipes.service';
-import { CreateRecetaDto } from './dto/create-recipe.dto';
-import { UpdateRecetaDto } from './dto/update-receta.dto';
+import { CreateRecipeDto } from './dto/create-recipe.dto';
+import { UpdateRecipeDto } from './dto/update-receta.dto';
 import { ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Auth } from 'src/common/decorators/auth.decorator';
 import { UserRole } from 'src/common/guard/roles.enum';
 import { Recipe } from './entities/recipes.entity';
 import { GetRecipesQueryDto } from './dto/get-recipe-query.dto';
-import { ApiKeyGuard } from 'src/common/guard/x-api-key/x-api-key.guard';
+
+
 
 @ApiTags('recetas')
 @Controller('Recipes')
 export class RecetasController {
   constructor(private readonly recipesService: RecipesService) {}
 
-  //@Auth(UserRole.ADMIN)
+  @Auth(UserRole.ADMIN)
   @Post('CreateRecipes')
   @ApiResponse({ status: 201, description: 'Created Recipe' })
   @ApiResponse({ status: 400, description: 'Dates invalid.' })
-  async create(@Body() createRecetaDto: CreateRecetaDto): Promise<Recipe> {
+  async create(@Body() createRecetaDto: CreateRecipeDto): Promise<Recipe> {
   const newRecipe = await this.recipesService.create(createRecetaDto);
   console.log(newRecipe);
   return newRecipe
@@ -46,9 +47,9 @@ export class RecetasController {
     return this.recipesService.findOneById(id);
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateRecetaDto: UpdateRecetaDto) {
-    return this.recipesService.update(+id, updateRecetaDto);
+  @Patch('update/:id')
+  update(@Param('id') id: string, @Body() updateRecetaDto: UpdateRecipeDto) {
+    return this.recipesService.update(id, updateRecetaDto);
   }
 
   @Delete(':id')

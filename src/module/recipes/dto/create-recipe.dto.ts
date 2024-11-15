@@ -7,7 +7,7 @@ import { IngredientsRecipeDto } from "./ingredients-recipes.dto";
 import { Level } from "../enums/level.enum";
 import { UtensilRecipeDto } from "./utensil-recipe.dto";
 
-export class CreateRecetaDto {
+export class CreateRecipeDto {
     
     @IsString()
     @ApiProperty()

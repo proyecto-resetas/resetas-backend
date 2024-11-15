@@ -3,9 +3,11 @@ import { CreateUserDto, UpdateUserDto  } from './dto'
 import { InjectModel } from '@nestjs/mongoose';
 import { User } from './entities/user.entity';
 import { Model } from 'mongoose';
+import { MyFavorite } from './entities/my-favorite.entity';
+import { MyRecipes } from './entities/my-recipe.entity';
 
 @Injectable()
-export class UsersService {
+export class UserService {
   constructor(@InjectModel(User.name) private userModel: Model<User>){}
 
 async create(createUserDto: CreateUserDto) {
@@ -80,6 +82,26 @@ async update(id: string, updateUserDto: UpdateUserDto) {
 
   }
 
+// async findRecipesFavoriteAndCreated(nameRecipe: string){
+
+//   try{
+//     const userRecipes = await this.userModel.find()
+//   } catch(error){
+//       throw new HttpException(`Error fetching users`, HttpStatus.INTERNAL_SERVER_ERROR);
+//   }
+//   // try{
+//   //   const users = await this.userModel.find({
+//   //     $or: [
+//   //       { favorite_recipes: { $exists: true, $not: { $size: 0 } } },
+//   //       { created_recipes: { $exists: true, $not: { $size: 0 } } },
+//   //     ],
+//   //   }).exec();
+//   //   return users;
+
+//   // } catch(error){
+//   //   throw new HttpException(`Error fetching users`, HttpStatus.INTERNAL_SERVER_ERROR);
+//   // }
+// } 
 async remove(id: string) {
 
     try {
@@ -96,4 +118,43 @@ async remove(id: string) {
     }
     
   }
+
+  // Agregar una receta a myFavorite
+  async addFavoriteRecipe(userId: string, recipe: MyFavorite): Promise<User> {
+    console.log(recipe)
+
+    return this.userModel.findByIdAndUpdate(
+      userId,
+      { $push: { myFavorite: recipe } },
+      { new: true }
+    ).exec();
+
+  }
+
+    // Agregar una receta a myFavorite
+    async addMyRecipe(userId: string, recipe: MyRecipes): Promise<User> {
+      return this.userModel.findByIdAndUpdate(
+        userId,
+        { $push: { myRecipe: recipe } },
+        { new: true }
+      ).exec();
+    }
+
+  // Eliminar una receta de myFavorite
+  async removeFavoriteRecipe(userId: string, recipeId: string): Promise<User> {
+    return this.userModel.findByIdAndUpdate(
+      userId,
+      { $pull: { myFavorite: { id: recipeId } } },
+      { new: true }
+    ).exec();
+  }
+
+  async removeMyRecipe(userId: string, recipeId: string): Promise<User> {
+    return this.userModel.findByIdAndUpdate(
+      userId,
+      { $pull: { myRecipe: { id: recipeId } } },
+      { new: true }
+    ).exec();
+  }
 }
+

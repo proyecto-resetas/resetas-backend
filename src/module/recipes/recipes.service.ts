@@ -1,6 +1,6 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
-import { CreateRecetaDto } from './dto/create-recipe.dto';
-import { UpdateRecetaDto } from './dto/update-receta.dto';
+import { HttpException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
+import { CreateRecipeDto } from './dto/create-recipe.dto';
+import { UpdateRecipeDto } from './dto/update-receta.dto';
 import { InjectModel } from '@nestjs/mongoose';
 import { Recipe } from './entities/recipes.entity';
 import { Model } from 'mongoose';
@@ -15,7 +15,7 @@ export class RecipesService {
    // private readonly stepService: StepsService,
   ){}
 
-async create(createRecipeDto: CreateRecetaDto): Promise<Recipe> {
+async create(createRecipeDto: CreateRecipeDto): Promise<Recipe> {
 
   //  const savedSteps = await this.stepService.createMultipleSteps(createRecipeDto.steps);
 
@@ -64,9 +64,7 @@ async  findRecipesCategory(
     return { recipes, total };
 }
 
-  findOne(id: number) {
-    return `This action returns a #${id} receta`;
-  }
+ 
 
 
 async findOneById(id: string) {
@@ -81,9 +79,45 @@ async findOneById(id: string) {
   }
 }
 
-  update(id: number, updateRecetaDto: UpdateRecetaDto) {
-    return `This action updates a #${id} receta`;
+async update(id: string, updateRecipeDto){
+  try {
+        const recipe = await this.recipeModel.findById(id).exec();
+      if (!recipe) {
+          throw new HttpException(`Recipe not found`, HttpStatus.NOT_FOUND);
+        }
+        const updatedRecipe = await this.recipeModel
+        .findByIdAndUpdate(id, updateRecipeDto, { new: true }).exec();
+  
+      if (!updatedRecipe) {
+        throw new NotFoundException(`recipe with id ${id} not found`);
+      }
+        return updatedRecipe;
+  
+      } catch (error) {
+        throw new HttpException(`Error fetching recipe`, HttpStatus.INTERNAL_SERVER_ERROR);
   }
+}
+
+  // async update(nameRecipe: string, updateRecetaDto: UpdateRecetaDto) {
+  //   try {
+  //     const user = await this.userModel.findOne(nameRecipe).exec();
+  //   if (!user) {
+  //       throw new HttpException(`User not found`, HttpStatus.NOT_FOUND);
+  //     }
+  //     const updatedUser = await this.userModel
+  //     .findByIdAndUpdate(id, updateUserDto, { new: true })
+  //     .exec();
+
+  //   if (!updatedUser) {
+  //     throw new NotFoundException(`User with id ${id} not found`);
+  //   }
+
+  //     return updatedUser;
+
+  //   } catch (error) {
+  //     throw new HttpException(`Error fetching user`, HttpStatus.INTERNAL_SERVER_ERROR);
+  //   }
+  // }
 
   remove(id: number) {
     return `This action removes a #${id} receta`;

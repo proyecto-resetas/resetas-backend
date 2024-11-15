@@ -1,6 +1,6 @@
 import { BadRequestException, HttpException, Injectable, InternalServerErrorException } from '@nestjs/common';
 import { LoginDto, RegisterDto } from './dto/index';
-import { UsersService } from 'src/module/users/users.service';
+import { UserService } from 'src/module/users/users.service';
 import { HashService } from 'src/common/utils/services/hash.service';
 import { JwtService } from '@nestjs/jwt';
 import { JwtPayload, Token } from './interface';
@@ -9,7 +9,7 @@ export class AuthService {
   constructor(
     private readonly jwtService: JwtService,
     private readonly hashService: HashService,
-    private readonly userService: UsersService,
+    private readonly userService: UserService,
   ){}
   
   async register(userRegister: RegisterDto) {

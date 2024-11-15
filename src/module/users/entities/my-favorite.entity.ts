@@ -2,14 +2,13 @@ import { IsString } from "@nestjs/class-validator";
 import { Prop, Schema } from "@nestjs/mongoose";
 
 @Schema()
-export class IngredientsRecipe {
+export class MyFavorite {
 
     @IsString()
     @Prop()
-    description: string;
+    idRecipe: string;
 
     @IsString()
     @Prop()
-    amount: string;
+    nameRecipe: string;
 }
-
