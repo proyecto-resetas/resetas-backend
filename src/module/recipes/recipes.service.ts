@@ -6,6 +6,7 @@ import { Recipe } from './entities/recipes.entity';
 import { Model } from 'mongoose';
 //import { StepsService } from '../steps/steps.service';
 import { GetRecipesQueryDto } from './dto/get-recipe-query.dto';
+import { UserService } from '../users/users.service';
 
 @Injectable()
 export class RecipesService {
@@ -13,6 +14,8 @@ export class RecipesService {
   constructor(
     @InjectModel(Recipe.name) private recipeModel: Model<Recipe>,
    // private readonly stepService: StepsService,
+   private readonly userService: UserService,
+
   ){}
 
 async create(createRecipeDto: CreateRecipeDto): Promise<Recipe> {
@@ -64,8 +67,74 @@ async  findRecipesCategory(
     return { recipes, total };
 }
 
- 
+// async findRecipesFavorite(userId: string, page = 1, limit = 10) {
+//   // Verificar si el usuario existe
+//   const user = await this.userService.findOneById(userId);
+//   if (!user) {
+//     throw new NotFoundException('User not found');
+//   }
 
+//   // Extraer los IDs de las recetas favoritas del usuario
+//   const favoriteRecipeIds = user.myFavorite.map(fav => fav.idRecipe);
+
+//   if (favoriteRecipeIds.length === 0) {
+//     return { recipes: [], total: 0 };
+//   }
+
+//   // Aplicar paginación
+//   const skip = (page - 1) * limit;
+
+//   // Consultar las recetas favoritas
+//   const [recipes, total] = await Promise.all([
+//     this.recipeModel
+//       .find({ _id: { $in: favoriteRecipeIds } })
+//       .skip(skip)
+//       .limit(limit)
+//       .exec(),
+//     this.recipeModel.countDocuments({ _id: { $in: favoriteRecipeIds } }).exec(),
+//   ]);
+
+//   return { recipes, total };
+// }
+
+async findRecipesProperty(userId: string, query: { type: 'favorite' | 'myRecipes' }, page: number, limit: number) {
+  const { type } = query;
+
+  // Verificar si el usuario existe
+  const user = await this.userService.findOneById(userId);
+  if (!user) {
+    throw new NotFoundException('User not found');
+  }
+
+  // Determinar la propiedad a consultar
+  let recipeIds: string[] = [];
+  if (type === 'favorite') {
+    recipeIds = user.myFavorite.map((fav) => fav.idRecipe);
+  } else if (type === 'myRecipes') {
+    recipeIds = user.myRecipe.map((recipe) => recipe.idRecipe);
+  } else {
+    throw new NotFoundException('Invalid query parameter. Allowed values are "favorite" or "myrecipe".');
+  }
+
+  if (recipeIds.length === 0) {
+    return { recipes: [], total: 0 };
+  }
+
+  // Aplicar paginación
+  const skip = (page - 1) * limit;
+
+  // Consultar las recetas según la propiedad seleccionada
+  const [recipes, total] = await Promise.all([
+    this.recipeModel
+      .find({ _id: { $in: recipeIds } })
+      .skip(skip)
+      .limit(limit)
+      .exec(),
+    this.recipeModel.countDocuments({ _id: { $in: recipeIds } }).exec(),
+  ]);
+
+  return { recipes, total };
+}
 
 async findOneById(id: string) {
   try{
@@ -78,6 +147,8 @@ async findOneById(id: string) {
     throw new HttpException(`Error fetching user`, HttpStatus.INTERNAL_SERVER_ERROR);
   }
 }
+
+
 
 async update(id: string, updateRecipeDto){
   try {

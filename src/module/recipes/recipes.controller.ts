@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, BadRequestException } from '@nestjs/common';
 import { RecipesService } from './recipes.service';
 import { CreateRecipeDto } from './dto/create-recipe.dto';
 import { UpdateRecipeDto } from './dto/update-receta.dto';
@@ -32,8 +32,38 @@ export class RecetasController {
     @Query() filterDto: GetRecipesQueryDto
   ): Promise<{ recipes: Recipe[], total: number }> {
     return this.recipesService.findRecipesCategory(filterDto);
+  }
+
+  // @Get('favorites/:userId')
+  // async getFavorites(
+  //   @Param('userId') userId: string,
+  //   @Query('page') page = '1',
+  //   @Query('limit') limit = '10',
+  // ) {
+  //   return this.recipesService.findRecipesProperty(
+  //     userId,
+
+  //     parseInt(page, 10),
+  //     parseInt(limit, 10),
+  //   );
+  // }
+  @Get(':type/:userId')
+  async findRecipes(
+    @Param('type') type: 'favorite' | 'myRecipes',
+    @Param('userId') userId: string,
+    @Query('page') page = 1,
+    @Query('limit') limit = 10,
+  ) {
+    // Validar que el tipo sea válido
+    if (!['favorite', 'myrecipe'].includes(type)) {
+      throw new BadRequestException(
+        'Invalid "type". It must be either "favorite" or "myrecipe".',
+      );
     }
 
+    // Llama al servicio con los parámetros necesarios
+    return this.recipesService.findRecipesProperty(userId, { type }, page, limit);
+  }
   @Auth(UserRole.ADMIN)
   @Get('all')
   findAll() {

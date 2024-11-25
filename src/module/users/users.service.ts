@@ -5,10 +5,12 @@ import { User } from './entities/user.entity';
 import { Model } from 'mongoose';
 import { MyFavorite } from './entities/my-favorite.entity';
 import { MyRecipes } from './entities/my-recipe.entity';
+import { RecipesService } from '../recipes/recipes.service';
 
 @Injectable()
 export class UserService {
-  constructor(@InjectModel(User.name) private userModel: Model<User>){}
+  constructor(@InjectModel(User.name) private userModel: Model<User>,
+){}
 
 async create(createUserDto: CreateUserDto) {
     const existingUser = await this.userModel
@@ -121,13 +123,41 @@ async remove(id: string) {
 
   // Agregar una receta a myFavorite
   async addFavoriteRecipe(userId: string, recipe: MyFavorite): Promise<User> {
-    console.log(recipe)
+   // console.log(recipe)
 
-    return this.userModel.findByIdAndUpdate(
-      userId,
-      { $push: { myFavorite: recipe } },
-      { new: true }
-    ).exec();
+    try {
+      // Verificar si el usuario existe
+      const user = await this.userModel.findById(userId).exec();
+      if (!user) {
+        throw new HttpException(`User not found`, HttpStatus.NOT_FOUND);
+      }
+  
+      // Verificar si el recipe ya está en la lista de favoritos
+      const isAlreadyFavorite = user.myFavorite.some(
+        (favorite: MyFavorite) => favorite.idRecipe === recipe.idRecipe
+      );
+  
+      if (isAlreadyFavorite == true) {
+        throw new NotFoundException(`Recipe is already in favorites`);
+      }
+  
+      // Si no está, añadir el nuevo favorito
+      const recipeSave = this.userModel
+        .findByIdAndUpdate(
+          userId,
+          { $push: { myFavorite: recipe } },
+          { new: true } // Devuelve el documento actualizado
+        )
+        .exec();
+
+        return recipeSave
+
+    } catch (error) {
+      throw new HttpException(
+        `Failed to add favorite recipe: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
 
   }
 
