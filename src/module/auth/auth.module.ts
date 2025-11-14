@@ -6,6 +6,9 @@ import { UsersModule } from '../users/users.module';
 import { UtilsModule } from 'src/common/utils/utils.module';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
+import { MongooseModule } from '@nestjs/mongoose';
+import { Otp, OtpSchema } from './entities/otp.entity';
+import { BrevoService } from 'src/common/utils/services/brevo.service';
 
 @Module({
   imports: [
@@ -14,11 +17,14 @@ import { PassportModule } from '@nestjs/passport';
       secret: process.env.JWT_SECRET,
       signOptions: { expiresIn: process.env.ACCESS_TOKEN_EXPIRY || '15m' },
     }),
+    MongooseModule.forFeature([
+      { name: Otp.name, schema: OtpSchema }
+    ]),
     UtilsModule,
     UsersModule,
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy],
-  exports: [  AuthService],
+  providers: [AuthService, JwtStrategy, BrevoService],
+  exports: [AuthService],
 })
 export class AuthModule {}

@@ -18,7 +18,7 @@ export class User extends Document {
   lastname: string;
 
   @IsEmail()
-  @Prop({ required: true, unique: true })
+  @Prop({ required: true, unique: true, match: /^\S+@\S+\.\S+$/ })
   email: string;
 
   @IsNotEmpty()
