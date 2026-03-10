@@ -30,9 +30,12 @@ export class User extends Document {
   @Prop({ required: true })
   password: string;
 
-  @IsString()
-  @Prop()
-  phone: string;
+  
+  @Prop({ type: { countryCode: String, phoneNumber: String } })
+  phone: {
+    countryCode: string;
+    phoneNumber: string;
+  };
 
   @IsString()
   @Prop()

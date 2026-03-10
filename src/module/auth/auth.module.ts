@@ -8,6 +8,8 @@ import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Otp, OtpSchema } from './entities/otp.entity';
+import { RefreshToken, RefreshTokenSchema } from './entities/refresh-token.entity';
+import { TokenBlacklist, TokenBlacklistSchema } from './entities/token-blacklist.entity';
 import { BrevoService } from 'src/common/utils/services/brevo.service';
 
 @Module({
@@ -18,7 +20,9 @@ import { BrevoService } from 'src/common/utils/services/brevo.service';
       signOptions: { expiresIn: process.env.ACCESS_TOKEN_EXPIRY || '15m' },
     }),
     MongooseModule.forFeature([
-      { name: Otp.name, schema: OtpSchema }
+      { name: Otp.name, schema: OtpSchema },
+      { name: RefreshToken.name, schema: RefreshTokenSchema },
+      { name: TokenBlacklist.name, schema: TokenBlacklistSchema }
     ]),
     UtilsModule,
     UsersModule,

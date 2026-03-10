@@ -26,7 +26,7 @@ export class BrevoService {
       to,
       subject,
       htmlContent,
-      senderName = 'Resetas',
+      senderName = 'Recetarium',
       senderEmail = process.env.BREVO_SENDER_EMAIL || 'danielestebanjimenezlopez@gmail.com',
     } = params;
 
@@ -65,73 +65,131 @@ export class BrevoService {
 
   async sendOtpEmail(email: string, code: string): Promise<void> {
     const htmlContent = `
-      <!DOCTYPE html>
-      <html>
+     <!DOCTYPE html>
+        <html lang="es">
         <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <style>
+            /* Importamos una fuente más moderna */
+            @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
+
             body {
-              font-family: Arial, sans-serif;
-              background-color: #f4f4f4;
+              font-family: 'Poppins', Arial, sans-serif;
+              background-color: #f8f9fa;
               margin: 0;
               padding: 0;
+              color: #333;
             }
+
+            .wrapper {
+              width: 100%;
+              table-layout: fixed;
+              background-color: #f8f9fa;
+              padding-bottom: 40px;
+            }
+
             .container {
               max-width: 600px;
-              margin: 50px auto;
+              margin: 40px auto;
               background-color: #ffffff;
-              padding: 20px;
-              border-radius: 10px;
-              box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+              border-radius: 24px;
+              overflow: hidden;
+              box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
             }
+
             .header {
+              background-color: #FF9800; /* Color del logo */
+              padding: 40px 20px;
               text-align: center;
-              padding: 20px 0;
             }
-            .header h1 {
-              color: #ff6b6b;
+
+            .logo {
+              max-width: 250px;
+              height: auto;
+            }
+
+            .content {
+              padding: 40px 30px;
+              text-align: center;
+            }
+
+            h2 {
+              color: #1a1a1a;
+              font-size: 24px;
+              margin-bottom: 10px;
+            }
+
+            p {
+              color: #666;
+              line-height: 1.6;
+              font-size: 16px;
+            }
+
+            .otp-container {
+              margin: 30px 0;
+              padding: 20px;
+              background-color: #FFF3E0;
+              border: 2px dashed #FF9800;
+              border-radius: 16px;
+            }
+
+            .otp-code {
+              font-size: 42px;
+              font-weight: 700;
+              color: #000;
+              letter-spacing: 8px;
               margin: 0;
             }
-            .content {
-              padding: 20px;
-              text-align: center;
-            }
-            .otp-code {
-              font-size: 32px;
-              font-weight: bold;
-              color: #ff6b6b;
-              background-color: #f8f9fa;
-              padding: 20px;
-              border-radius: 5px;
-              letter-spacing: 5px;
-              margin: 20px 0;
-            }
+
             .footer {
               text-align: center;
-              padding: 20px;
-              color: #888;
-              font-size: 12px;
+              padding: 30px;
+              background-color: #1a1a1a;
+              color: #ffffff;
+              font-size: 13px;
+            }
+
+            .footer p {
+              color: #bbb;
+              margin: 5px 0;
+            }
+
+            .validity-note {
+              font-size: 14px;
+              color: #999;
+              margin-top: 20px;
             }
           </style>
         </head>
         <body>
-          <div class="container">
-            <div class="header">
-              <h1>🍳 Resetas</h1>
-            </div>
-            <div class="content">
-              <h2>Código de Verificación</h2>
-              <p>Has solicitado un código de verificación para tu cuenta.</p>
-              <p>Utiliza el siguiente código:</p>
-              <div class="otp-code">${code}</div>
-              <p>Este código es válido por 10 minutos.</p>
-              <p>Si no solicitaste este código, por favor ignora este mensaje.</p>
-            </div>
-            <div class="footer">
-              <p>© 2025 Resetas. Todos los derechos reservados.</p>
+          <div class="wrapper">
+            <div class="container">
+              <div class="header">
+                <img src="" alt="Recetarium" class="logo">
+              </div>
+
+              <div class="content">
+                <h2>¡Hola! 👨‍🍳</h2>
+                <p>Has solicitado un código de verificación para acceder a tu cuenta en <strong>Recetarium</strong>.</p>
+                
+                <div class="otp-container">
+                  <p style="margin-top: 0; font-weight: 600; color: #FF9800;">TU CÓDIGO DE SEGURIDAD</p>
+                  <div class="otp-code">${code}</div>
+                </div>
+
+                <p class="validity-note">Este código expirará en <strong>10 minutos</strong> por seguridad.</p>
+                <p style="font-size: 14px;">Si no has solicitado este código, puedes ignorar este correo de forma segura.</p>
+              </div>
+
+              <div class="footer">
+                <p><strong>Recetarium</strong> - Tu cocina, tus reglas.</p>
+                <p>© 2026 Todos los derechos reservados.</p>
+              </div>
             </div>
           </div>
         </body>
-      </html>
+        </html>
     `;
 
     await this.sendEmail({

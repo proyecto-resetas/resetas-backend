@@ -1,4 +1,4 @@
-import { IsEmail, IsOptional, IsString, Length } from "@nestjs/class-validator";
+import { IsEmail, IsObject, IsOptional, IsString, Length } from "@nestjs/class-validator";
 import { ApiProperty } from "@nestjs/swagger";
 import { Matches } from "class-validator";
 
@@ -24,15 +24,18 @@ export class CreateUserDto {
   })
   password: string;
 
-  @ApiProperty()
-  @IsString()
-  phone: string;
+  @ApiProperty({ example: { countryCode: '+57', phoneNumber: '3001234567' } })
+  @IsObject()
+  phone: {
+    countryCode: string;
+    phoneNumber: string;
+  };
 
-  @ApiProperty()
+  @ApiProperty({ example: 'Colombia' })
   @IsString()
   country: string;
 
-  @ApiProperty()
+  @ApiProperty({ example: 'Bogotá' })
   @IsString()
   city: string;
 
