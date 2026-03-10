@@ -29,6 +29,7 @@ export class BrevoService {
       senderName = 'Recetarium',
       senderEmail = process.env.BREVO_SENDER_EMAIL || 'danielestebanjimenezlopez@gmail.com',
     } = params;
+    
 
     try {
       const response = await axios.post(
