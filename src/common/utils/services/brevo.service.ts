@@ -166,7 +166,7 @@ export class BrevoService {
           <div class="wrapper">
             <div class="container">
               <div class="header">
-                <img src="" alt="Recetarium" class="logo">
+                <img href="./assets/images/recetariumBorderDart.png" alt="Recetarium" class="logo">
               </div>
 
               <div class="content">
