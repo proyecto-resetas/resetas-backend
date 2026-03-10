@@ -1,7 +1,9 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Request, UseGuards, BadRequestException } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { RegisterDto, LoginDto, GenerateOtpDto, VerifyOtpDto } from './dto';
-import { ApiResponse, ApiTags, ApiOperation } from '@nestjs/swagger';
+import { RegisterDto, LoginDto, GenerateOtpDto, VerifyOtpDto, RefreshTokenDto } from './dto';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
+import { JwtAuthGuard } from 'src/common/guard/jwt.guard';
+import { DocRegister, DocGenerateOtp, DocVerifyOtp, DocRefreshToken, DocLogout } from './decorators/auth-swagger.decorator';
 
 @ApiTags('authentication')
 @Controller('auth')
@@ -10,36 +12,44 @@ export class AuthController {
 
   
   @Post('register')
-  @ApiResponse({ status: 201, description: 'User register' })
-  @ApiResponse({ status: 400, description: 'Dates invalid.' })
+  @DocRegister()
   async registerUser(@Body() createAuthDto: RegisterDto) {
     const token = await this.authService.register(createAuthDto);
     return token;
   }
 
-  @Post('login')  
-  @ApiResponse({ status: 201, description: 'User found with email' })
-  @ApiResponse({ status: 400, description: 'Dates invalid.' })
-  login(@Body() logIn: LoginDto) {
-    return this.authService.logIn(logIn);
-  }
 
-  @Post('otp/generate')
-  @ApiOperation({ summary: 'Generar y enviar código OTP al email del usuario' })
-  @ApiResponse({ status: 201, description: 'Código OTP enviado exitosamente' })
-  @ApiResponse({ status: 400, description: 'El usuario no existe' })
-  @ApiResponse({ status: 500, description: 'Error al generar el código OTP' })
+  @Post('otp/login')
+  @DocGenerateOtp()
   async generateOtp(@Body() generateOtpDto: GenerateOtpDto) {
     return this.authService.generateOtp(generateOtpDto.email);
   }
 
   @Post('otp/verify')
-  @ApiOperation({ summary: 'Verificar código OTP ingresado por el usuario' })
-  @ApiResponse({ status: 201, description: 'Código OTP verificado exitosamente' })
-  @ApiResponse({ status: 400, description: 'Código inválido o expirado' })
-  @ApiResponse({ status: 500, description: 'Error al verificar el código OTP' })
+  @DocVerifyOtp()
   async verifyOtp(@Body() verifyOtpDto: VerifyOtpDto) {
     return this.authService.verifyOtp(verifyOtpDto.email, verifyOtpDto.code);
+  }
+
+  @Post('refresh')
+  @DocRefreshToken()
+  async refreshToken(@Body() refreshTokenDto: RefreshTokenDto) {
+    return this.authService.refreshToken(refreshTokenDto.refresh_token);
+  }
+
+  @Post('logout')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @DocLogout()
+  async logout(@Request() req: any) {
+    const accessToken = req.headers.authorization?.replace('Bearer ', '');
+    const userId = req.user?.sub;
+    
+    if (!accessToken || !userId) {
+      throw new BadRequestException('Token o usuario no encontrado');
+    }
+    
+    return this.authService.logout(accessToken, userId);
   }
 
 }

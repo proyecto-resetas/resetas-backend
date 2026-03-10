@@ -15,7 +15,7 @@ async function bootstrap() {
 
 
   const port = process.env.PORT || 3000;
-  app.setGlobalPrefix('api/v1', { exclude: ['/'] });
+  app.setGlobalPrefix('', { exclude: ['/', 'api'] });
   app.enableCors({
     origin: '*',
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
@@ -47,9 +47,9 @@ async function bootstrap() {
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api-doc', app, document);
+  SwaggerModule.setup('api', app, document);
 
   await app.listen(port);
-  console.log(`Application is running on: http://localhost:${port}/api/v1`);
+  console.log(`Application is running on: http://localhost:${port}/api`);
 }
 bootstrap();

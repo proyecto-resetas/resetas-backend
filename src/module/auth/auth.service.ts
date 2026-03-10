@@ -1,4 +1,4 @@
-import { BadRequestException, HttpException, Injectable, InternalServerErrorException } from '@nestjs/common';
+import { BadRequestException, HttpException, Injectable, InternalServerErrorException, UnauthorizedException } from '@nestjs/common';
 import { LoginDto, RegisterDto } from './dto/index';
 import { UserService } from 'src/module/users/users.service';
 import { HashService } from 'src/common/utils/services/hash.service';
@@ -7,7 +7,10 @@ import { JwtPayload, Token } from './interface';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Otp } from './entities/otp.entity';
+import { RefreshToken } from './entities/refresh-token.entity';
+import { TokenBlacklist } from './entities/token-blacklist.entity';
 import { BrevoService } from 'src/common/utils/services/brevo.service';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class AuthService {
@@ -17,6 +20,8 @@ export class AuthService {
     private readonly userService: UserService,
     private readonly brevoService: BrevoService,
     @InjectModel(Otp.name) private readonly otpModel: Model<Otp>,
+    @InjectModel(RefreshToken.name) private readonly refreshTokenModel: Model<RefreshToken>,
+    @InjectModel(TokenBlacklist.name) private readonly tokenBlacklistModel: Model<TokenBlacklist>,
   ){}
   
   async register(userRegister: RegisterDto) {
@@ -33,16 +38,11 @@ export class AuthService {
           password: hashedPassword,
         });
 
-        const tokens = await this.getTokens({
-          sub: user.id,
-          username: user.username,
-          role: user.role,
-        });
-    
-        // Devolver el usuario completo con los tokens
+        await this.generateOtp(user.email);
         return {
-          user,
-          ...tokens,
+          message: 'User registered successfully',
+          email: user.email,
+          role: user.role,
         };
       }
   
@@ -52,49 +52,59 @@ export class AuthService {
     }
   }
 
-  async logIn(logInDto: LoginDto) {
-    const user = await this.userService.findOneByEmail(logInDto.email);
-    if (!user) {
-      throw new BadRequestException('User not found');
-    }
 
-    const isPasswordValid = await this.hashService.compare(
-      logInDto.password,
-      user.password,
-    );
-    if (!isPasswordValid) {
-      throw new BadRequestException('Incorrect password');
-    }
-
-    const tokens = await this.getTokens({
-      sub: user.id,
-      username: user.username,
-      role: user.role,
-    });
-
-    // Devolver el usuario completo con los tokens
-    return {
-      user,
-      ...tokens,
-    };
-  }
-
-async getTokens(jwtPayload: JwtPayload): Promise<Token> {
+async getTokens(jwtPayload: JwtPayload, userId?: string): Promise<Token> {
     const secretKey = process.env.JWT_SECRET;
+    const refreshSecretKey = process.env.JWT_REFRESH_SECRET || secretKey;
+    
     if (!secretKey) {
       throw new Error('JWT_SECRET is not set');
     }
+
+    // Generar JTI único para el access token
+    const jti = crypto.randomBytes(32).toString('hex');
+    const payloadWithJti = { ...jwtPayload, jti };
+
     const accessTokenOptions = {
       expiresIn: process.env.ACCESS_TOKEN_EXPIRY || '30m',
     };
 
     const accessToken = await this.signToken(
-      jwtPayload,
+      payloadWithJti,
       secretKey,
       accessTokenOptions,
     );
 
-    return { access_token: accessToken };
+    // Generar refresh token
+    const refreshToken = crypto.randomBytes(64).toString('hex');
+    const refreshTokenExpiry = process.env.REFRESH_TOKEN_EXPIRY || '7d';
+    
+    // Calcular fecha de expiración del refresh token
+    const expiresAt = new Date();
+    const expiryDays = parseInt(refreshTokenExpiry.replace('d', '')) || 7;
+    expiresAt.setDate(expiresAt.getDate() + expiryDays);
+
+    // Guardar refresh token en la base de datos si se proporciona userId
+    if (userId) {
+      // Revocar refresh tokens anteriores del usuario
+      await this.refreshTokenModel.updateMany(
+        { userId, isRevoked: false },
+        { isRevoked: true }
+      );
+
+      // Guardar el nuevo refresh token
+      await this.refreshTokenModel.create({
+        userId,
+        token: refreshToken,
+        expiresAt,
+        isRevoked: false,
+      });
+    }
+
+    return { 
+      access_token: accessToken,
+      refresh_token: refreshToken 
+    };
   }
 
 async signToken(payload: JwtPayload, secretKey: string, options: any) {
@@ -159,9 +169,9 @@ async signToken(payload: JwtPayload, secretKey: string, options: any) {
   }
 
   /**
-   * Verifica el código OTP ingresado por el usuario
+   * Verifica el código OTP ingresado por el usuario y genera tokens JWT
    */
-  async verifyOtp(email: string, code: string): Promise<{ message: string; verified: boolean }> {
+  async verifyOtp(email: string, code: string): Promise<{ message: string; user: any; access_token: string; refresh_token: string }> {
     try {
       // Buscar el OTP más reciente para este email
       const otp = await this.otpModel.findOne({ 
@@ -197,13 +207,27 @@ async signToken(payload: JwtPayload, secretKey: string, options: any) {
         );
       }
 
+      // Obtener el usuario para generar los tokens
+      const user = await this.userService.findOneByEmail(email);
+      if (!user) {
+        throw new BadRequestException('Usuario no encontrado');
+      }
+
+      // Generar tokens JWT (incluyendo refresh token)
+      const tokens = await this.getTokens({
+        sub: user.id,
+        username: user.username,
+        role: user.role,
+      }, user.id);
+
       // Marcar el OTP como verificado
       otp.verified = true;
       await otp.save();
 
       return {
-        message: 'Código OTP verificado exitosamente',
-        verified: true,
+        message: 'Código OTP verificado exitosamente. Login completado',
+        user,
+        ...tokens,
       };
     } catch (error) {
       console.error('Error al verificar OTP:', error);
@@ -212,6 +236,111 @@ async signToken(payload: JwtPayload, secretKey: string, options: any) {
       }
       throw new InternalServerErrorException('Error al verificar el código OTP');
     }
+  }
+
+  /**
+   * Refresca el access token usando un refresh token válido
+   */
+  async refreshToken(refreshToken: string): Promise<{ access_token: string; refresh_token: string }> {
+    try {
+      // Buscar el refresh token en la base de datos
+      const storedToken = await this.refreshTokenModel.findOne({
+        token: refreshToken,
+        isRevoked: false,
+      });
+
+      if (!storedToken) {
+        throw new UnauthorizedException('Refresh token inválido o revocado');
+      }
+
+      // Verificar si el refresh token ha expirado
+      if (new Date() > storedToken.expiresAt) {
+        await this.refreshTokenModel.updateOne(
+          { _id: storedToken._id },
+          { isRevoked: true }
+        );
+        throw new UnauthorizedException('Refresh token expirado');
+      }
+
+      // Obtener el usuario
+      const user = await this.userService.findOneById(storedToken.userId);
+      if (!user) {
+        throw new UnauthorizedException('Usuario no encontrado');
+      }
+
+      // Revocar el refresh token actual
+      await this.refreshTokenModel.updateOne(
+        { _id: storedToken._id },
+        { isRevoked: true }
+      );
+
+      // Generar nuevos tokens
+      const tokens = await this.getTokens({
+        sub: user.id,
+        username: user.username,
+        role: user.role,
+      }, user.id);
+
+      return tokens;
+    } catch (error) {
+      console.error('Error al refrescar token:', error);
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
+      throw new InternalServerErrorException('Error al refrescar el token');
+    }
+  }
+
+  /**
+   * Realiza logout invalidando los tokens del usuario
+   */
+  async logout(accessToken: string, userId: string): Promise<{ message: string }> {
+    try {
+      // Decodificar el token para obtener su expiración
+      let expiresAt: Date;
+      try {
+        const decoded = this.jwtService.decode(accessToken) as any;
+        if (decoded && decoded.exp) {
+          expiresAt = new Date(decoded.exp * 1000);
+        } else {
+          // Si no se puede decodificar, usar expiración por defecto
+          expiresAt = new Date();
+          expiresAt.setMinutes(expiresAt.getMinutes() + 30);
+        }
+      } catch {
+        expiresAt = new Date();
+        expiresAt.setMinutes(expiresAt.getMinutes() + 30);
+      }
+
+      // Agregar el access token a la blacklist
+      await this.tokenBlacklistModel.create({
+        token: accessToken,
+        userId,
+        expiresAt,
+        type: 'access',
+      });
+
+      // Revocar todos los refresh tokens activos del usuario
+      await this.refreshTokenModel.updateMany(
+        { userId, isRevoked: false },
+        { isRevoked: true }
+      );
+
+      return {
+        message: 'Logout exitoso. Tokens invalidados',
+      };
+    } catch (error) {
+      console.error('Error al hacer logout:', error);
+      throw new InternalServerErrorException('Error al realizar logout');
+    }
+  }
+
+  /**
+   * Verifica si un token está en la blacklist
+   */
+  async isTokenBlacklisted(token: string): Promise<boolean> {
+    const blacklisted = await this.tokenBlacklistModel.findOne({ token });
+    return !!blacklisted;
   }
 
 }
