@@ -1,5 +1,5 @@
 import { BadRequestException, HttpException, Injectable, InternalServerErrorException, UnauthorizedException } from '@nestjs/common';
-import { LoginDto, RegisterDto } from './dto/index';
+import { LoginDto, RegisterDto, VerifyOtpResponseDto } from './dto/index';
 import { UserService } from 'src/module/users/users.service';
 import { HashService } from 'src/common/utils/services/hash.service';
 import { JwtService } from '@nestjs/jwt';
@@ -10,6 +10,7 @@ import { Otp } from './entities/otp.entity';
 import { RefreshToken } from './entities/refresh-token.entity';
 import { TokenBlacklist } from './entities/token-blacklist.entity';
 import { BrevoService } from 'src/common/utils/services/brevo.service';
+import { RoleService } from '../roles/services/role.service';
 import * as crypto from 'crypto';
 
 @Injectable()
@@ -19,6 +20,7 @@ export class AuthService {
     private readonly hashService: HashService,
     private readonly userService: UserService,
     private readonly brevoService: BrevoService,
+    private readonly roleService: RoleService,
     @InjectModel(Otp.name) private readonly otpModel: Model<Otp>,
     @InjectModel(RefreshToken.name) private readonly refreshTokenModel: Model<RefreshToken>,
     @InjectModel(TokenBlacklist.name) private readonly tokenBlacklistModel: Model<TokenBlacklist>,
@@ -59,6 +61,18 @@ async getTokens(jwtPayload: JwtPayload, userId?: string): Promise<Token> {
     
     if (!secretKey) {
       throw new Error('JWT_SECRET is not set');
+    }
+
+    // Obtener permisos del rol si no están en el payload
+    if (!jwtPayload.permissions) {
+      const permissions = await this.roleService.getPermissionsByRoleName(jwtPayload.role);
+      jwtPayload.permissions = permissions;
+    }
+
+    // Obtener permisos del rol si no están en el payload
+    if (!jwtPayload.permissions) {
+      const permissions = await this.roleService.getPermissionsByRoleName(jwtPayload.role);
+      jwtPayload.permissions = permissions;
     }
 
     // Generar JTI único para el access token
@@ -171,7 +185,7 @@ async signToken(payload: JwtPayload, secretKey: string, options: any) {
   /**
    * Verifica el código OTP ingresado por el usuario y genera tokens JWT
    */
-  async verifyOtp(email: string, code: string): Promise<{ message: string; user: any; access_token: string; refresh_token: string }> {
+  async verifyOtp(email: string, code: string): Promise<VerifyOtpResponseDto> {
     try {
       // Buscar el OTP más reciente para este email
       const otp = await this.otpModel.findOne({ 
@@ -213,11 +227,15 @@ async signToken(payload: JwtPayload, secretKey: string, options: any) {
         throw new BadRequestException('Usuario no encontrado');
       }
 
+      // Obtener permisos del rol del usuario
+      const permissions = await this.roleService.getPermissionsByRoleName(user.role);
+
       // Generar tokens JWT (incluyendo refresh token)
       const tokens = await this.getTokens({
         sub: user.id,
         username: user.username,
         role: user.role,
+        permissions,
       }, user.id);
 
       // Marcar el OTP como verificado
@@ -226,7 +244,11 @@ async signToken(payload: JwtPayload, secretKey: string, options: any) {
 
       return {
         message: 'Código OTP verificado exitosamente. Login completado',
-        user,
+        userId: user.id,
+        email: user.email,
+        username: user.username,
+        role: user.role,
+        permissions,
         ...tokens,
       };
     } catch (error) {
@@ -274,11 +296,15 @@ async signToken(payload: JwtPayload, secretKey: string, options: any) {
         { isRevoked: true }
       );
 
+      // Obtener permisos del rol del usuario
+      const permissions = await this.roleService.getPermissionsByRoleName(user.role);
+
       // Generar nuevos tokens
       const tokens = await this.getTokens({
         sub: user.id,
         username: user.username,
         role: user.role,
+        permissions,
       }, user.id);
 
       return tokens;
