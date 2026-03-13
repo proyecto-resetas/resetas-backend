@@ -17,7 +17,9 @@ export class BrevoService {
   constructor() {
     this.apiKey = process.env.BREVO_API_KEY;
     if (!this.apiKey) {
-      throw new Error('BREVO_API_KEY no está configurada en las variables de entorno');
+      throw new Error(
+        'BREVO_API_KEY no está configurada en las variables de entorno',
+      );
     }
   }
 
@@ -27,7 +29,8 @@ export class BrevoService {
       subject,
       htmlContent,
       senderName = 'Recetarium',
-      senderEmail = process.env.BREVO_SENDER_EMAIL || 'danielestebanjimenezlopez@gmail.com',
+      senderEmail = process.env.BREVO_SENDER_EMAIL ||
+        'danielestebanjimenezlopez@gmail.com',
     } = params;
 
     try {
@@ -58,7 +61,10 @@ export class BrevoService {
         throw new InternalServerErrorException('Error al enviar el email');
       }
     } catch (error) {
-      console.error('Error al enviar email con Brevo:', error.response?.data || error.message);
+      console.error(
+        'Error al enviar email con Brevo:',
+        error.response?.data || error.message,
+      );
       throw new InternalServerErrorException('No se pudo enviar el email');
     }
   }
@@ -199,8 +205,3 @@ export class BrevoService {
     });
   }
 }
-
-
-
-
-

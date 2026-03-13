@@ -1,42 +1,49 @@
-import { Transform } from "@nestjs/class-transformer";
-import { IsEmail, IsNotEmpty, IsObject, IsOptional, IsString, MaxLength, MinLength } from "@nestjs/class-validator";
-import { ApiProperty } from "@nestjs/swagger";
+import { Transform } from '@nestjs/class-transformer';
+import {
+  IsEmail,
+  IsNotEmpty,
+  IsObject,
+  IsOptional,
+  IsString,
+  MaxLength,
+  MinLength,
+} from '@nestjs/class-validator';
+import { ApiProperty } from '@nestjs/swagger';
 
 export class RegisterDto {
-
-  @ApiProperty( { example: 'recetarium1234@yopmail.com' })
+  @ApiProperty({ example: 'recetarium1234@yopmail.com' })
   @IsEmail()
   @IsNotEmpty()
   @Transform(({ value }) => value.toLowerCase())
   email: string;
 
-  @ApiProperty( { example: 'juan' })
+  @ApiProperty({ example: 'juan' })
   @IsNotEmpty()
   @IsString()
   username: string;
 
-  @ApiProperty( { example: 'Pérez' })
+  @ApiProperty({ example: 'Pérez' })
   @IsString()
   lastname: string;
 
-  @ApiProperty( { example: 'password' })
+  @ApiProperty({ example: 'password' })
   @IsNotEmpty()
   @MinLength(8, { message: 'password should be minimmum 8' })
   @MaxLength(50, { message: 'password should be maximium 50' })
   password: string;
 
-  @ApiProperty( { example: { countryCode: '+57', phoneNumber: '3001234567' } })
+  @ApiProperty({ example: { countryCode: '+57', phoneNumber: '3001234567' } })
   @IsObject()
   phone: {
     countryCode: string;
     phoneNumber: string;
   };
 
-  @ApiProperty( { example: 'Colombia' })
+  @ApiProperty({ example: 'Colombia' })
   @IsString()
   country: string;
 
-  @ApiProperty( { example: 'Bogotá' })
+  @ApiProperty({ example: 'Bogotá' })
   @IsString()
   city: string;
 

@@ -37,7 +37,5 @@ import { ApiKeyGuard } from './common/guard/x-api-key/x-api-key.guard';
   //     useClass: ApiKeyGuard,
   //   },
   // ],
-  
 })
-
 export class AppModule {}

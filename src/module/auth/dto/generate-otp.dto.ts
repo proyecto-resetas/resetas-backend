@@ -1,17 +1,16 @@
-import { IsEmail, IsNotEmpty } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsString } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+import { Transform } from '@nestjs/class-transformer';
 
 export class GenerateOtpDto {
   @ApiProperty({
     description: 'Email del usuario para enviar el OTP',
-    example: 'usuario@ejemplo.com'
+    example: 'usuario@ejemplo.com',
   })
-  @IsEmail({}, { message: 'El email debe ser válido' })
-  @IsNotEmpty({ message: 'El email es requerido' })
+  @ApiProperty({ example: 'usuario@ejemplo.com' })
+  @IsEmail()
+  @IsString()
+  @IsNotEmpty()
+  @Transform(({ value }) => value.toLowerCase())
   email: string;
 }
-
-
-
-
-

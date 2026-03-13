@@ -81,9 +81,11 @@ createRecipe() { }
 
 **Nota**: Es más fácil usar `@Auth({ permissions: [...] })` que manejar los guards manualmente.
 
+**Importante**: Los permisos **no** van en el JWT. El `PermissionsGuard` obtiene los permisos del rol del usuario desde la BD en cada petición. Cualquier módulo que use `@Auth({ permissions: [...] })` o `PermissionsGuard` debe **importar `RolesModule`**.
+
 ## Sistema de Permisos
 
-Los permisos se almacenan en la colección `Role` de MongoDB. Cada rol tiene un array de permisos.
+Los permisos se almacenan en la colección `Role` de MongoDB. Cada rol tiene un array de permisos. El JWT solo incluye el nombre del rol (`role`); los permisos se resuelven en el guard.
 
 ### Formato de Permisos
 

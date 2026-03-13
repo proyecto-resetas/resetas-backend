@@ -1,4 +1,9 @@
-import { Controller, Post, UploadedFile, UseInterceptors } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  UploadedFile,
+  UseInterceptors,
+} from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { S3Service } from './s3.service';
 import { Express } from 'express'; // Para definir el tipo de archivo
@@ -15,6 +20,6 @@ export class UploadS3Controller {
   @UseInterceptors(FileInterceptor('file'))
   async uploadImage(@UploadedFile() file) {
     const imageUrl = await this.s3Service.uploadFile(file);
-    return  imageUrl ;
+    return imageUrl;
   }
 }

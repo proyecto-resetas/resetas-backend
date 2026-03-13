@@ -1,5 +1,12 @@
 import { applyDecorators } from '@nestjs/common';
-import { ApiBody, ApiOperation, ApiParam, ApiResponse, ApiUnauthorizedResponse, ApiInternalServerErrorResponse } from '@nestjs/swagger';
+import {
+  ApiBody,
+  ApiOperation,
+  ApiParam,
+  ApiResponse,
+  ApiUnauthorizedResponse,
+  ApiInternalServerErrorResponse,
+} from '@nestjs/swagger';
 import { CreateUserDto, UpdateUserDto } from '../dto';
 
 /**
@@ -33,7 +40,10 @@ export function DocCreateUser() {
               phoneNumber: { type: 'string', example: '3001234567' },
             },
           },
-          photoUrl: { type: 'string', example: 'https://example.com/photo.jpg' },
+          photoUrl: {
+            type: 'string',
+            example: 'https://example.com/photo.jpg',
+          },
           createdAt: { type: 'string', format: 'date-time' },
           updatedAt: { type: 'string', format: 'date-time' },
         },
@@ -85,7 +95,10 @@ export function DocGetUserByEmail() {
               phoneNumber: { type: 'string', example: '3001234567' },
             },
           },
-          photoUrl: { type: 'string', example: 'https://example.com/photo.jpg' },
+          photoUrl: {
+            type: 'string',
+            example: 'https://example.com/photo.jpg',
+          },
           myFavorite: {
             type: 'array',
             items: {
@@ -157,7 +170,10 @@ export function DocGetUserById() {
               phoneNumber: { type: 'string', example: '3001234567' },
             },
           },
-          photoUrl: { type: 'string', example: 'https://example.com/photo.jpg' },
+          photoUrl: {
+            type: 'string',
+            example: 'https://example.com/photo.jpg',
+          },
           myFavorite: {
             type: 'array',
             items: {
@@ -234,7 +250,10 @@ export function DocUpdateUser() {
               phoneNumber: { type: 'string', example: '3001234567' },
             },
           },
-          photoUrl: { type: 'string', example: 'https://example.com/photo.jpg' },
+          photoUrl: {
+            type: 'string',
+            example: 'https://example.com/photo.jpg',
+          },
           updatedAt: { type: 'string', format: 'date-time' },
         },
       },

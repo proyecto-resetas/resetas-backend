@@ -13,7 +13,7 @@ export class S3Service {
     this.s3Client = new S3Client({
       region: process.env.S3_REGION,
       credentials: {
-        accessKeyId: process.env.AWS_ACCESS_KEY_ID ,
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
         secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
       },
     });
@@ -21,7 +21,9 @@ export class S3Service {
     this.bucketName = process.env.AWS_S3_BUCKET_NAME;
   }
 
-  async uploadFile(file): Promise<{ imageUrl: string; originalFileName: string }> {
+  async uploadFile(
+    file,
+  ): Promise<{ imageUrl: string; originalFileName: string }> {
     const fileExtension = file.originalname.split('.').pop();
     const key = `${uuidv4()}.${fileExtension}`; // Generar un nombre o id único para el archivo
 
@@ -39,7 +41,7 @@ export class S3Service {
       const imageUrl = `https://${this.bucketName}.s3.amazonaws.com/${key}`;
       return {
         imageUrl: imageUrl,
-        originalFileName: file.originalname, 
+        originalFileName: file.originalname,
       };
     } catch (err) {
       console.error('Error uploading file: ', err);

@@ -9,20 +9,25 @@ export class PaymentWompiService {
   private wompiPublicKey = process.env.PUBLIC_KEY_WOMPI;
   private wompiPrivateKey = process.env.PRIVATE_KEY_WOMPI;
 
-  async getMerchant(){
+  async getMerchant() {
     const acceptanceToken = await axios.get(
-      `${this.wompiUrl}/merchants/${this.wompiPublicKey}`
+      `${this.wompiUrl}/merchants/${this.wompiPublicKey}`,
     );
 
     return acceptanceToken.data;
   }
 
-  async processTransaction(amount: number, userPaymentSourceId: string, destinationAccount: string, appAccount: string) {
+  async processTransaction(
+    amount: number,
+    userPaymentSourceId: string,
+    destinationAccount: string,
+    appAccount: string,
+  ) {
     const paymentAmount = amount * 100; // Wompi maneja valores en centavos
 
-  //  const get = await axios.get(
-  //   `${this.wompiUrl}/merchants/${this.wompiPublicKey}`
-  //  );
+    //  const get = await axios.get(
+    //   `${this.wompiUrl}/merchants/${this.wompiPublicKey}`
+    //  );
 
     // Transacción entre usuarios
     const transactionResponse = await axios.post(
@@ -39,17 +44,17 @@ export class PaymentWompiService {
         redirect_url: 'https://miapp.com/pagos/completado', // URL de redirección
         destination: {
           account_id: destinationAccount, // ID de la cuenta del destinatario
-        }
+        },
       },
       {
         headers: {
           Authorization: `Bearer ${this.wompiPrivateKey}`,
         },
-      }
+      },
     );
 
     // Aplicar la comisión a la cuenta de la aplicación
-    const commissionAmount = paymentAmount * 0.10; // Ejemplo: 10% de comisión
+    const commissionAmount = paymentAmount * 0.1; // Ejemplo: 10% de comisión
     await axios.post(
       `${this.wompiUrl}/transactions`,
       {
@@ -63,13 +68,13 @@ export class PaymentWompiService {
         reference: 'app_commission_txn',
         destination: {
           account_id: appAccount, // ID de la cuenta de la aplicación
-        }
+        },
       },
       {
         headers: {
           Authorization: `Bearer ${this.wompiPrivateKey}`,
         },
-      }
+      },
     );
 
     return transactionResponse.data;
@@ -80,9 +85,13 @@ export class PaymentWompiService {
     // Por ejemplo, cambiar un estado en la base de datos para el usuario y producto
   }
 
-  async getTokenCard(number: string, cvc: string, expMonth: string, expYear: string, cardHolder: string){
-
-
+  async getTokenCard(
+    number: string,
+    cvc: string,
+    expMonth: string,
+    expYear: string,
+    cardHolder: string,
+  ) {
     const tokenCard = await axios.post(
       `${this.wompiUrl}/tokens/cards`,
       {
@@ -90,18 +99,15 @@ export class PaymentWompiService {
         cvc: cvc,
         exp_month: expMonth,
         exp_year: expYear,
-        card_holder: cardHolder
+        card_holder: cardHolder,
       },
       {
         headers: {
           Authorization: `Bearer ${this.wompiPublicKey}`,
         },
-      }
+      },
     );
 
     return tokenCard.data;
   }
-
-
 }
-
