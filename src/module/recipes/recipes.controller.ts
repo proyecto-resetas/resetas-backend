@@ -9,15 +9,18 @@ import {
   Query,
   BadRequestException,
   Request,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiTags, ApiConsumes, ApiBody } from '@nestjs/swagger';
 import { RecipesService } from './recipes.service';
 import { CreateRecipeDto } from './dto/create-recipe.dto';
 import { UpdateRecipeDto } from './dto/update-receta.dto';
-import { ApiTags } from '@nestjs/swagger';
+import { GetRecipesQueryDto } from './dto/get-recipe-query.dto';
 import { Auth } from 'src/common/decorators/auth.decorator';
 import { UserRole } from 'src/common/guard/roles.enum';
 import { Recipe } from './entities/recipes.entity';
-import { GetRecipesQueryDto } from './dto/get-recipe-query.dto';
 import {
   DocCreateRecipe,
   DocGetRecipesFilter,
@@ -32,6 +35,42 @@ import {
 @Controller('Recipes')
 export class RecetasController {
   constructor(private readonly recipesService: RecipesService) {}
+
+  /**
+   * Carga una imagen y usa Ollama para detectar sus colores.
+   */
+  @Post('analyze-image')
+  @UseInterceptors(FileInterceptor('image'))
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        image: {
+          type: 'string',
+          format: 'binary',
+          description: 'Imagen de la receta para detectar colores',
+        },
+        prompt: {
+          type: 'string',
+          example: 'Qué colores ves en esta imagen?',
+          description: 'Prompt opcional',
+        },
+      },
+    },
+  })
+  async analyzeImage(
+    @UploadedFile() file: Express.Multer.File,
+    @Body('prompt') prompt?: string,
+  ): Promise<{ response: string }> {
+    if (!file) {
+      throw new BadRequestException(
+        'Se requiere una imagen en el campo "image"',
+      );
+    }
+    const response = await this.recipesService.analyzeRecipeImage(file, prompt);
+    return { response };
+  }
 
   @Auth(UserRole.ADMIN)
   @Post('CreateRecipes')

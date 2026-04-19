@@ -8,14 +8,13 @@ import {
   Delete,
 } from '@nestjs/common';
 import { UserService } from './users.service';
-import { CreateUserDto, UpdateUserDto } from './dto';
+import { UpdateUserDto } from './dto';
 import { ApiTags } from '@nestjs/swagger';
 import { UserRole } from 'src/common/guard/roles.enum';
 import { Auth } from 'src/common/decorators/auth.decorator';
 import { MyFavorite } from './entities/my-favorite.entity';
 import { CreateFavoriteDto } from './dto/create-favorite.dto';
 import {
-  DocCreateUser,
   DocGetUserByEmail,
   DocGetUserById,
   DocUpdateUser,
@@ -26,12 +25,6 @@ import {
 @Controller('users')
 export default class UsersController {
   constructor(private readonly userService: UserService) {}
-
-  @Post('createUser')
-  @DocCreateUser()
-  create(@Body() createUserDto: CreateUserDto) {
-    return this.userService.create(createUserDto);
-  }
 
   @Auth(UserRole.ADMIN)
   @Post(':email')

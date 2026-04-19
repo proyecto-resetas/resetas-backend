@@ -46,7 +46,7 @@ export class AuthService {
           password: hashedPassword,
         });
 
-        await this.generateOtp(user.email);
+        await this.generateOtp(user.email, userRegister.password);
         return {
           message: 'User registered successfully',
           email: user.email,
@@ -133,12 +133,26 @@ export class AuthService {
   /**
    * Genera un código OTP de 6 dígitos y lo envía por email usando Brevo
    */
-  async generateOtp(email: string): Promise<{ message: string }> {
+  async generateOtp(
+    email: string,
+    password: string,
+  ): Promise<{ message: string }> {
     try {
-      // Verificar si el usuario existe
+      // Verificar si el usuario existe y la contraseña es correcta
       const user = await this.userService.findOneByEmail(email);
       if (!user) {
-        throw new BadRequestException('El usuario no existe');
+        throw new BadRequestException(
+          'El usuario no existe o la contraseña es incorrecta',
+        );
+      }
+
+      // Verificar si la contraseña es correcta
+      const isPasswordCorrect = await this.hashService.compare(
+        password,
+        user.password,
+      );
+      if (!isPasswordCorrect) {
+        throw new BadRequestException('La contraseña es incorrecta');
       }
 
       // Generar código OTP de 6 dígitos

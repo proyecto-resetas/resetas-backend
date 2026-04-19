@@ -5,12 +5,14 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { Recipe, RecipeSchema } from './entities/recipes.entity';
 import { StepsModule } from '../steps/steps.module';
 import { UsersModule } from '../users/users.module';
+import { OllamaModule } from '../ollama/ollama.module';
 
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: Recipe.name, schema: RecipeSchema }]),
     StepsModule,
     UsersModule,
+    OllamaModule,
   ],
   controllers: [RecetasController],
   providers: [RecipesService],

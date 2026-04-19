@@ -6,7 +6,6 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { S3Service } from './s3.service';
-import { Express } from 'express'; // Para definir el tipo de archivo
 import { ApiResponse, ApiTags } from '@nestjs/swagger';
 
 @ApiTags('imageS3')

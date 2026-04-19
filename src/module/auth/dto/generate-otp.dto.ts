@@ -13,4 +13,12 @@ export class GenerateOtpDto {
   @IsNotEmpty()
   @Transform(({ value }) => value.toLowerCase())
   email: string;
+
+  @ApiProperty({
+    description: 'Password del usuario para enviar el OTP',
+    example: 'password',
+  })
+  @IsString()
+  @IsNotEmpty()
+  password: string;
 }

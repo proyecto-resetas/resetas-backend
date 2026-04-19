@@ -32,13 +32,18 @@ export class AuthController {
   @DocRegister()
   async registerUser(@Body() createAuthDto: RegisterDto) {
     const token = await this.authService.register(createAuthDto);
+
+    console.log(token);
     return token;
   }
 
   @Post('otp/login')
   @DocGenerateOtp()
   async generateOtp(@Body() generateOtpDto: GenerateOtpDto) {
-    return this.authService.generateOtp(generateOtpDto.email);
+    return this.authService.generateOtp(
+      generateOtpDto.email,
+      generateOtpDto.password,
+    );
   }
 
   @Post('otp/verify')
