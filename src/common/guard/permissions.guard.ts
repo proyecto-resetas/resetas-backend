@@ -33,7 +33,6 @@ export class PermissionsGuard implements CanActivate {
     const req = context.switchToHttp().getRequest();
     const user = req.user;
 
-    console.log('User extracted from JWT:', user);
 
     if (!user) {
       throw new ForbiddenException('Usuario no autenticado');

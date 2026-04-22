@@ -28,7 +28,6 @@ export class UserRoleGuard implements CanActivate {
     const req = context.switchToHttp().getRequest();
     const user = req.user;
 
-    console.log('User extracted from JWT:', user);
 
     // Corrección 2: Verificar que el usuario está autenticado
     if (!user)

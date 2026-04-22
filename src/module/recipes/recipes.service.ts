@@ -117,7 +117,6 @@ export class RecipesService {
       provider,
     });
 
-    console.log(rawResponse);
 
     // Limpia y parsea el JSON de la IA
     return this.aiService.parseJSONResponse(rawResponse);

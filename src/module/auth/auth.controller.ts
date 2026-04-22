@@ -32,8 +32,6 @@ export class AuthController {
   @DocRegister()
   async registerUser(@Body() createAuthDto: RegisterDto) {
     const token = await this.authService.register(createAuthDto);
-
-    console.log(token);
     return token;
   }
 
