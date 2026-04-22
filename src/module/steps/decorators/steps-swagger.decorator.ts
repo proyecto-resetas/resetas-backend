@@ -1,10 +1,5 @@
 import { applyDecorators } from '@nestjs/common';
-import {
-  ApiBody,
-  ApiOperation,
-  ApiParam,
-  ApiResponse,
-} from '@nestjs/swagger';
+import { ApiBody, ApiOperation, ApiParam, ApiResponse } from '@nestjs/swagger';
 import { StepDto } from '../dto/create-step.dto';
 import { UpdateStepDto } from '../dto/update-step.dto';
 
@@ -44,7 +39,8 @@ export function DocGetAllSteps() {
   return applyDecorators(
     ApiOperation({
       summary: 'Obtener todos los pasos',
-      description: 'Retorna una lista de todos los pasos registrados en el sistema.',
+      description:
+        'Retorna una lista de todos los pasos registrados en el sistema.',
     }),
     ApiResponse({
       status: 200,
@@ -76,7 +72,11 @@ export function DocGetStepById() {
       summary: 'Obtener un paso por ID',
       description: 'Retorna la información detallada de un paso específico.',
     }),
-    ApiParam({ name: 'id', description: 'ID del paso', example: '507f1f77bcf86cd799439011' }),
+    ApiParam({
+      name: 'id',
+      description: 'ID del paso',
+      example: '507f1f77bcf86cd799439011',
+    }),
     ApiResponse({
       status: 200,
       description: 'Paso encontrado',
@@ -94,9 +94,14 @@ export function DocGetStepsByRecipe() {
   return applyDecorators(
     ApiOperation({
       summary: 'Obtener pasos de una receta específica',
-      description: 'Retorna los pasos de una receta solo si el usuario tiene la receta en su lista de "Mis Recetas".',
+      description:
+        'Retorna los pasos de una receta solo si el usuario tiene la receta en su lista de "Mis Recetas".',
     }),
-    ApiParam({ name: 'recipeId', description: 'ID de la receta', example: '507f1f77bcf86cd799439011' }),
+    ApiParam({
+      name: 'recipeId',
+      description: 'ID de la receta',
+      example: '507f1f77bcf86cd799439011',
+    }),
     ApiResponse({
       status: 200,
       description: 'Pasos de la receta obtenidos exitosamente',
@@ -113,7 +118,10 @@ export function DocGetStepsByRecipe() {
         },
       },
     }),
-    ApiResponse({ status: 403, description: 'No tienes permiso para ver los pasos de esta receta' }),
+    ApiResponse({
+      status: 403,
+      description: 'No tienes permiso para ver los pasos de esta receta',
+    }),
     ApiResponse({ status: 404, description: 'Receta no encontrada' }),
     ApiResponse({ status: 401, description: 'No autorizado' }),
     ApiResponse({ status: 500, description: 'Error interno del servidor' }),

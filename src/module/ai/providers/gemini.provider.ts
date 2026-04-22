@@ -22,7 +22,10 @@ export class GeminiProvider implements IAIProvider {
     return this.configService.get<string>('GEMINI_MODEL') || 'gemini-1.5-flash';
   }
 
-  async generateResponse(prompt: string, options?: AIRequestOptions): Promise<AIResponse> {
+  async generateResponse(
+    prompt: string,
+    options?: AIRequestOptions,
+  ): Promise<AIResponse> {
     const model = options?.model || this.defaultModel;
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${this.apiKey}`;
 
@@ -46,7 +49,8 @@ export class GeminiProvider implements IAIProvider {
         this.httpService.post(url, { contents }),
       );
 
-      const text = response.data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      const text =
+        response.data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
       return { text, raw: response.data };
     } catch (error) {
       this.handleError(error);
@@ -55,7 +59,9 @@ export class GeminiProvider implements IAIProvider {
 
   private handleError(error: any) {
     if (error instanceof AxiosError) {
-      this.logger.error(`Gemini request failed: ${JSON.stringify(error.response?.data)}`);
+      this.logger.error(
+        `Gemini request failed: ${JSON.stringify(error.response?.data)}`,
+      );
       throw new Error(`Gemini Error: ${error.message}`);
     }
     throw error;

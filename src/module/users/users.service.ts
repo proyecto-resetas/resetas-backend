@@ -131,7 +131,10 @@ export class UserService {
       );
 
       if (isAlreadyFavorite) {
-        throw new HttpException(`Recipe is already in favorites`, HttpStatus.BAD_REQUEST);
+        throw new HttpException(
+          `Recipe is already in favorites`,
+          HttpStatus.BAD_REQUEST,
+        );
       }
 
       // 3. Añadirlo
@@ -175,7 +178,10 @@ export class UserService {
       );
 
       if (isAlreadyInMyRecipes) {
-        throw new HttpException(`Recipe is already in my recipes`, HttpStatus.BAD_REQUEST);
+        throw new HttpException(
+          `Recipe is already in my recipes`,
+          HttpStatus.BAD_REQUEST,
+        );
       }
 
       // 3. Añadir

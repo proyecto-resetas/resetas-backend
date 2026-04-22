@@ -1,6 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { AIProvider, AIRequestOptions, AIResponse } from '../../module/ai/enums/ai-provider.enum';
+import {
+  AIProvider,
+  AIRequestOptions,
+  AIResponse,
+} from '../../module/ai/enums/ai-provider.enum';
 import { IAIProvider } from '../../module/ai/interfaces/ai-provider.interface';
 import { GeminiProvider } from '../../module/ai/providers/gemini.provider';
 import { OpenAIProvider } from '../../module/ai/providers/openai.provider';
@@ -21,16 +25,28 @@ export class AIService {
   }
 
   private initializeProviders() {
-    this.providers.set(AIProvider.GEMINI, new GeminiProvider(this.configService, this.httpService));
-    this.providers.set(AIProvider.OPENAI, new OpenAIProvider(this.configService, this.httpService));
-    this.providers.set(AIProvider.OLLAMA, new OllamaProvider(this.configService, this.httpService));
+    this.providers.set(
+      AIProvider.GEMINI,
+      new GeminiProvider(this.configService, this.httpService),
+    );
+    this.providers.set(
+      AIProvider.OPENAI,
+      new OpenAIProvider(this.configService, this.httpService),
+    );
+    this.providers.set(
+      AIProvider.OLLAMA,
+      new OllamaProvider(this.configService, this.httpService),
+    );
   }
 
   async generateResponse(
     prompt: string,
     options?: AIRequestOptions & { provider?: AIProvider },
   ): Promise<AIResponse> {
-    const providerType = options?.provider ?? this.configService.get<AIProvider>('DEFAULT_AI_PROVIDER') ?? AIProvider.OLLAMA;
+    const providerType =
+      options?.provider ??
+      this.configService.get<AIProvider>('DEFAULT_AI_PROVIDER') ??
+      AIProvider.OLLAMA;
     const provider = this.providers.get(providerType);
 
     if (!provider) {
@@ -40,7 +56,9 @@ export class AIService {
     try {
       return await provider.generateResponse(prompt, options);
     } catch (error) {
-      this.logger.error(`Error with AI provider ${providerType}: ${error.message}`);
+      this.logger.error(
+        `Error with AI provider ${providerType}: ${error.message}`,
+      );
       throw error;
     }
   }
@@ -78,7 +96,7 @@ export class AIService {
     const match = text.match(jsonRegex);
 
     // Si hay match, usamos el contenido del bloque; si no, usamos el texto original
-    const jsonString = match ? (match[1] || match[2]) : text;
+    const jsonString = match ? match[1] || match[2] : text;
 
     try {
       // Limpiar espacios y caracteres extraños al inicio/final

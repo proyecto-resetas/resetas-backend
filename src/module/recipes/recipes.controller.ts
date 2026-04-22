@@ -19,7 +19,6 @@ import { AIProvider } from '../ai';
 import { CreateRecipeDto } from './dto/create-recipe.dto';
 import { UpdateRecipeDto } from './dto/update-receta.dto';
 import { GetRecipesQueryDto } from './dto/get-recipe-query.dto';
-import { Auth } from 'src/common/decorators/auth.decorator';
 import { Secure } from 'src/common/decorators/secure.decorator';
 import { UserRole } from 'src/common/guard/roles.enum';
 import { Recipe } from './entities/recipes.entity';

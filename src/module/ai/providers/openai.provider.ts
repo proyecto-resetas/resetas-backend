@@ -22,7 +22,10 @@ export class OpenAIProvider implements IAIProvider {
     return this.configService.get<string>('OPENAI_MODEL') || 'gpt-4o-mini';
   }
 
-  async generateResponse(prompt: string, options?: AIRequestOptions): Promise<AIResponse> {
+  async generateResponse(
+    prompt: string,
+    options?: AIRequestOptions,
+  ): Promise<AIResponse> {
     const model = options?.model || this.defaultModel;
     const url = 'https://api.openai.com/v1/chat/completions';
 
@@ -69,7 +72,9 @@ export class OpenAIProvider implements IAIProvider {
 
   private handleError(error: any) {
     if (error instanceof AxiosError) {
-      this.logger.error(`OpenAI request failed: ${JSON.stringify(error.response?.data)}`);
+      this.logger.error(
+        `OpenAI request failed: ${JSON.stringify(error.response?.data)}`,
+      );
       throw new Error(`OpenAI Error: ${error.message}`);
     }
     throw error;
