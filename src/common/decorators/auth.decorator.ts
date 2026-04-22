@@ -1,5 +1,5 @@
 import { applyDecorators, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiSecurity } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../guard/jwt.guard';
 import { UserRoleGuard } from '../guard/role.guard';
 import { PermissionsGuard } from '../guard/permissions.guard';
@@ -63,7 +63,7 @@ export function Auth(
     perms = undefined;
   }
 
-  const decorators: any[] = [ApiBearerAuth()];
+  const decorators: any[] = [ApiBearerAuth(), ApiSecurity('x-api-key')];
 
   const guards: any[] = [JwtAuthGuard]; // Siempre necesario para autenticación
 

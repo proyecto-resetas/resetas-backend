@@ -9,10 +9,16 @@ import { UpdateStepDto } from './dto/update-step.dto';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Step } from './entities/step.entity';
+import { UserService } from '../users/users.service';
+import { Recipe } from '../recipes/entities/recipes.entity';
 
 @Injectable()
 export class StepsService {
-  constructor(@InjectModel(Step.name) private stepModel: Model<Step>) {}
+  constructor(
+    @InjectModel(Step.name) private stepModel: Model<Step>,
+    @InjectModel(Recipe.name) private recipeModel: Model<Recipe>,
+    private readonly userService: UserService,
+  ) {}
 
   async create(createStepDto: StepDto) {
     const newStep = new this.stepModel(createStepDto);
@@ -48,6 +54,34 @@ export class StepsService {
     }
     // Si hay pasos, proceder con la creación
     return Promise.all(steps.map((step) => this.create(step)));
+  }
+
+  async findStepsByRecipeForUser(
+    recipeId: string,
+    userId: string,
+  ): Promise<Step[]> {
+    // 1. Buscar al usuario y verificar si tiene la receta en sus 'myRecipes'
+    const user = await this.userService.findOneById(userId);
+    const hasRecipe = user.myRecipe?.some((r) => r.idRecipe === recipeId);
+
+    if (!hasRecipe) {
+      throw new HttpException(
+        'No tienes permiso para ver los pasos de esta receta. Esta receta no está en tu lista de "Mis Recetas".',
+        HttpStatus.FORBIDDEN,
+      );
+    }
+
+    // 2. Si la tiene, buscar la receta y devolver sus pasos poblados
+    const recipe = await this.recipeModel
+      .findById(recipeId)
+      .populate('steps')
+      .exec();
+
+    if (!recipe) {
+      throw new NotFoundException(`La receta con id ${recipeId} no existe`);
+    }
+
+    return recipe.steps as unknown as Step[];
   }
 
   async remove(id: string) {

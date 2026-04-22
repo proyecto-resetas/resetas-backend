@@ -10,10 +10,14 @@ import { User } from './entities/user.entity';
 import { Model } from 'mongoose';
 import { MyFavorite } from './entities/my-favorite.entity';
 import { MyRecipes } from './entities/my-recipe.entity';
+import { Recipe } from '../recipes/entities/recipes.entity';
 
 @Injectable()
 export class UserService {
-  constructor(@InjectModel(User.name) private userModel: Model<User>) {}
+  constructor(
+    @InjectModel(User.name) private userModel: Model<User>,
+    @InjectModel(Recipe.name) private recipeModel: Model<Recipe>,
+  ) {}
 
   async create(createUserDto: CreateUserDto) {
     const existingUser = await this.userModel
@@ -108,34 +112,42 @@ export class UserService {
   }
 
   // Agregar una receta a myFavorite
-  async addFavoriteRecipe(userId: string, recipe: MyFavorite): Promise<User> {
+  async addFavoriteRecipe(userId: string, recipeId: string): Promise<User> {
     try {
-      // Verificar si el usuario existe
+      // 1. Obtener la receta para el nombre
+      const recipe = await this.recipeModel.findById(recipeId).exec();
+      if (!recipe) {
+        throw new NotFoundException(`Recipe with id ${recipeId} not found`);
+      }
+
+      // 2. Verificar si el usuario existe y si ya lo tiene en favoritos
       const user = await this.userModel.findById(userId).exec();
       if (!user) {
         throw new HttpException(`User not found`, HttpStatus.NOT_FOUND);
       }
 
-      // Verificar si el recipe ya está en la lista de favoritos
       const isAlreadyFavorite = user.myFavorite.some(
-        (favorite: MyFavorite) => favorite.idRecipe === recipe.idRecipe,
+        (favorite: MyFavorite) => favorite.idRecipe === recipeId,
       );
 
-      if (isAlreadyFavorite == true) {
-        throw new NotFoundException(`Recipe is already in favorites`);
+      if (isAlreadyFavorite) {
+        throw new HttpException(`Recipe is already in favorites`, HttpStatus.BAD_REQUEST);
       }
 
-      // Si no está, añadir el nuevo favorito
-      const recipeSave = this.userModel
+      // 3. Añadirlo
+      return await this.userModel
         .findByIdAndUpdate(
           userId,
-          { $push: { myFavorite: recipe } },
-          { new: true }, // Devuelve el documento actualizado
+          {
+            $push: {
+              myFavorite: { idRecipe: recipeId, nameRecipe: recipe.nameRecipe },
+            },
+          },
+          { new: true },
         )
         .exec();
-
-      return recipeSave;
     } catch (error) {
+      if (error instanceof HttpException) throw error;
       throw new HttpException(
         `Failed to add favorite recipe: ${error.message}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -143,11 +155,48 @@ export class UserService {
     }
   }
 
-  // Agregar una receta a myFavorite
-  async addMyRecipe(userId: string, recipe: MyRecipes): Promise<User> {
-    return this.userModel
-      .findByIdAndUpdate(userId, { $push: { myRecipe: recipe } }, { new: true })
-      .exec();
+  // Agregar una receta a myRecipe
+  async addMyRecipe(userId: string, recipeId: string): Promise<User> {
+    try {
+      // 1. Obtener la receta
+      const recipe = await this.recipeModel.findById(recipeId).exec();
+      if (!recipe) {
+        throw new NotFoundException(`Recipe with id ${recipeId} not found`);
+      }
+
+      // 2. Verificar usuario y si ya existe en la lista
+      const user = await this.userModel.findById(userId).exec();
+      if (!user) {
+        throw new HttpException(`User not found`, HttpStatus.NOT_FOUND);
+      }
+
+      const isAlreadyInMyRecipes = user.myRecipe.some(
+        (r: MyRecipes) => r.idRecipe === recipeId,
+      );
+
+      if (isAlreadyInMyRecipes) {
+        throw new HttpException(`Recipe is already in my recipes`, HttpStatus.BAD_REQUEST);
+      }
+
+      // 3. Añadir
+      return await this.userModel
+        .findByIdAndUpdate(
+          userId,
+          {
+            $push: {
+              myRecipe: { idRecipe: recipeId, nameRecipe: recipe.nameRecipe },
+            },
+          },
+          { new: true },
+        )
+        .exec();
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      throw new HttpException(
+        `Failed to add recipe to my recipes: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
   }
 
   // Eliminar una receta de myFavorite
@@ -155,7 +204,7 @@ export class UserService {
     return this.userModel
       .findByIdAndUpdate(
         userId,
-        { $pull: { myFavorite: { id: recipeId } } },
+        { $pull: { myFavorite: { idRecipe: recipeId } } },
         { new: true },
       )
       .exec();
@@ -165,7 +214,7 @@ export class UserService {
     return this.userModel
       .findByIdAndUpdate(
         userId,
-        { $pull: { myRecipe: { id: recipeId } } },
+        { $pull: { myRecipe: { idRecipe: recipeId } } },
         { new: true },
       )
       .exec();

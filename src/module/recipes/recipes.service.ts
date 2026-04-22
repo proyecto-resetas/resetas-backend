@@ -12,6 +12,7 @@ import { GetRecipesQueryDto } from './dto/get-recipe-query.dto';
 import { UserService } from '../users/users.service';
 import { StepsService } from '../steps/steps.service';
 import { OllamaService } from '../ollama/ollama.service';
+import { AIService, AIProvider } from '../ai';
 
 const RECIPE_ANALYSIS_PROMPT = `
 ### ROLE_DEFINITION
@@ -68,6 +69,30 @@ Reason internally: Identify the recipe title, list ingredients with quantities, 
 </SHIELD>
 `;
 
+const RECIPE_ANALYSIS_PROMPT_OLLAMA = `
+### SYSTEM_ROLE
+Analista OCR Gastronómico. Transforma imágenes de recetas en JSON estricto en español.
+
+### REGLAS DE EXTRACCIÓN
+1. **JSON ÚNICAMENTE**: Prohibido añadir texto, saludos o explicaciones.
+3. **FIDELIDAD**: Si un dato (precio, categoría, tiempo) no existe en la imagen, usa "null".
+4.  **Formato de Tiempo**: Los tiempos deben expresarse en formato "Xm" (ej. "15m") y en minutos enteros para el campo "timeScreen".
+
+### SCHEMA_DEFINITION
+{
+  "nameRecipe": "",
+  "descriptionRecipe": "",
+  "imageUrl": "",
+  "category": null,
+  "price": 0.0,
+  "level": "Fácil|Intermedio|Difícil",
+  "ingredientsRecipe": [{"description": "", "amount": ""}],
+  "utensilRecipe": [{"utensil": ""}],
+  "steps": [{"description": "", "time": "Xm", "timeScreen": 0}],
+
+}
+`;
+
 @Injectable()
 export class RecipesService {
   constructor(
@@ -75,26 +100,43 @@ export class RecipesService {
     private readonly stepService: StepsService,
     private readonly userService: UserService,
     private readonly ollamaService: OllamaService,
+    private readonly aiService: AIService,
   ) {}
 
   /**
-   * Analiza una imagen de receta usando el prompt estructurado para obtener un JSON.
+   * Analiza una imagen de receta usando el prompt estructurado para obtener un objeto JSON listo para guardar.
    */
   async analyzeRecipeImage(
     file: Express.Multer.File,
     prompt?: string,
-  ): Promise<string> {
-    const base64Image = file.buffer.toString('base64');
+    provider?: AIProvider,
+  ): Promise<any> {
+    const finalPrompt = prompt || RECIPE_ANALYSIS_PROMPT_OLLAMA;
 
-    // Usamos el prompt experto por defecto si no se proporciona uno personalizado
-    const finalPrompt = prompt || RECIPE_ANALYSIS_PROMPT;
-
-    // NOTA: Asegúrate de que OLLAMA_MODEL en tu .env sea un modelo de visión (p.ej. llava, gemma2, moondream)
-    const result = await this.ollamaService.generateResponse(finalPrompt, {
-      images: [base64Image],
+    const rawResponse = await this.aiService.analyzeImage(file, finalPrompt, {
+      provider,
     });
 
-    return result.response;
+    console.log(rawResponse);
+
+    // Limpia y parsea el JSON de la IA
+    return this.aiService.parseJSONResponse(rawResponse);
+  }
+
+  /**
+   * Analiza una imagen de receta y la guarda automáticamente en la base de datos.
+   */
+  async analyzeAndCreateRecipe(
+    file: Express.Multer.File,
+    userId: string,
+    prompt?: string,
+    provider?: AIProvider,
+  ): Promise<Recipe> {
+    // 1. Analizamos la imagen para obtener el objeto JSON
+    const recipeData = await this.analyzeRecipeImage(file, prompt, provider);
+
+    // 2. Usamos el método create existente para guardarla
+    return await this.create(recipeData as CreateRecipeDto, userId);
   }
 
   async create(
@@ -128,7 +170,11 @@ export class RecipesService {
 
   async findAll() {
     try {
-      const recipes = await this.recipeModel.find().populate('steps').exec();
+      const recipes = await this.recipeModel
+        .find()
+        .select('-steps -ingredientsRecipe -utensilRecipe')
+        .populate('createdBy', 'username lastname')
+        .exec();
       if (!recipes) {
         throw new HttpException(`User not found`, HttpStatus.NOT_FOUND);
       }
@@ -144,10 +190,13 @@ export class RecipesService {
   async findRecipesCategory(
     filterDto: GetRecipesQueryDto,
   ): Promise<{ recipes: Recipe[]; total: number }> {
-    const { category, createdBy, level, page, limit } = filterDto;
+    const { name, category, createdBy, level, page, limit } = filterDto;
 
     const filters: any = {};
 
+    if (name) {
+      filters.nameRecipe = { $regex: name, $options: 'i' };
+    }
     if (category) filters.category = category;
     if (createdBy) filters.createdBy = createdBy;
     if (level) filters.level = level;
@@ -157,9 +206,10 @@ export class RecipesService {
     const [recipes, total] = await Promise.all([
       this.recipeModel
         .find(filters)
+        .select('-steps -ingredientsRecipe -utensilRecipe')
         .skip(skip)
         .limit(limit)
-        .populate('steps')
+        .populate('createdBy', 'username lastname')
         .exec(),
       this.recipeModel.countDocuments(filters).exec(),
     ]);
@@ -219,7 +269,7 @@ export class RecipesService {
       recipeIds = user.myRecipe.map((recipe) => recipe.idRecipe);
     } else {
       throw new NotFoundException(
-        'Invalid query parameter. Allowed values are "favorite" or "myrecipe".',
+        'Invalid query parameter. Allowed values are "favorite" or "myRecipes".',
       );
     }
 
@@ -257,6 +307,27 @@ export class RecipesService {
     } catch (error) {
       throw new HttpException(
         `Error fetching recipe`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async findIngredientsAndUtensils(id: string) {
+    try {
+      const recipe = await this.recipeModel
+        .findById(id)
+        .select('ingredientsRecipe utensilRecipe')
+        .exec();
+      if (!recipe) {
+        throw new HttpException(`Recipe not found`, HttpStatus.NOT_FOUND);
+      }
+      return {
+        ingredientsRecipe: recipe.ingredientsRecipe,
+        utensilRecipe: recipe.utensilRecipe,
+      };
+    } catch (error) {
+      throw new HttpException(
+        `Error fetching ingredients and utensils`,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

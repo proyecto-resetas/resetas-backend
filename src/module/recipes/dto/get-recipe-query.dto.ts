@@ -4,6 +4,10 @@ import { IsOptional, IsString, IsNumber } from '@nestjs/class-validator';
 export class GetRecipesQueryDto {
   @IsOptional()
   @IsString()
+  name: string;
+
+  @IsOptional()
+  @IsString()
   category: string;
 
   @IsOptional()

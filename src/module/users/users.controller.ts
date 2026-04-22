@@ -6,6 +6,7 @@ import {
   Patch,
   Param,
   Delete,
+  Request,
 } from '@nestjs/common';
 import { UserService } from './users.service';
 import { UpdateUserDto } from './dto';
@@ -20,20 +21,21 @@ import {
   DocUpdateUser,
   DocDeleteUser,
 } from './decorators/users-swagger.decorator';
+import { Secure } from 'src/common/decorators/secure.decorator';
 
 @ApiTags('users')
 @Controller('users')
 export default class UsersController {
   constructor(private readonly userService: UserService) {}
 
-  @Auth(UserRole.ADMIN)
+  @Secure([UserRole.ADMIN], ['users:read'])
   @Post(':email')
   @DocGetUserByEmail()
   findOne(@Param('email') email: string) {
     return this.userService.findOneByEmail(email);
   }
 
-  @Auth(UserRole.ADMIN)
+  @Secure([UserRole.ADMIN], ['users:read'])
   @Get(':id')
   @DocGetUserById()
   findById(@Param('id') id: string) {
@@ -41,68 +43,57 @@ export default class UsersController {
   }
 
   @Patch(':id')
+  @Secure([UserRole.ADMIN], ['users:update'])
   @DocUpdateUser()
   update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
     return this.userService.update(id, updateUserDto);
   }
 
   @Delete(':id')
+  @Secure([UserRole.ADMIN], ['users:delete'])
   @DocDeleteUser()
   remove(@Param('id') id: string) {
     return this.userService.remove(id);
   }
 
-  // Agregar una receta a createdRecipeForMe
-  // @Post(':userId/created-recipe')
-  // async addCreatedRecipeForMe(
-  //   @Param('userId') userId: string,
-  //   @Body() recipe: CreatedRecipeForMe,
-  // ) {
-  //   return this.userService.addCreatedRecipeForMe(userId, recipe);
-  // }
-
   // Agregar una receta a myFavorite
-  @Post('favorite-recipe/:userId')
-  //@ApiResponse({ status: 201, description: 'true' })
-  //@ApiResponse({ status: 400, description: 'false' })
+  @Post('favorite-recipe/:recipeId')
+  @Secure([UserRole.ADMIN, UserRole.USER], ['users:create'])
   async addFavoriteRecipe(
-    @Param('userId') userId: string,
-    @Body() recipe: CreateFavoriteDto,
+    @Param('recipeId') recipeId: string,
+    @Request() req: any,
   ) {
-    return this.userService.addFavoriteRecipe(userId, recipe);
+    const userId = req.user.sub;
+    return this.userService.addFavoriteRecipe(userId, recipeId);
   }
 
-  @Post(':userId/my-recipe')
-  async addMyRecipe(
-    @Param('userId') userId: string,
-    @Body() recipe: MyFavorite,
-  ) {
-    return this.userService.addMyRecipe(userId, recipe);
+  // Agregar una receta a myRecipe
+  @Post('my-recipe/:recipeId')
+  @Secure([UserRole.ADMIN, UserRole.USER], ['users:create'])
+  async addMyRecipe(@Param('recipeId') recipeId: string, @Request() req: any) {
+    const userId = req.user.sub;
+    return this.userService.addMyRecipe(userId, recipeId);
   }
-
-  // Eliminar una receta de createdRecipeForMe
-  // @Delete(':userId/created-recipe/:recipeId')
-  // async removeCreatedRecipeForMe(
-  //   @Param('userId') userId: string,
-  //   @Param('recipeId') recipeId: string,
-  // ) {
-  //   return this.userService.removeCreatedRecipeForMe(userId, recipeId);
-  // }
 
   // Eliminar una receta de myFavorite
-  @Delete(':userId/favorite-recipe/:recipeId')
+  @Delete('favorite-recipe/:recipeId')
+  @Secure([UserRole.ADMIN, UserRole.USER], ['users:delete'])
   async removeFavoriteRecipe(
-    @Param('userId') userId: string,
     @Param('recipeId') recipeId: string,
+    @Request() req: any,
   ) {
+    const userId = req.user.sub;
     return this.userService.removeFavoriteRecipe(userId, recipeId);
   }
 
-  @Delete(':userId/my-recipe/:recipeId')
+  // Eliminar una receta de myRecipe
+  @Delete('my-recipe/:recipeId')
+  @Secure([UserRole.ADMIN, UserRole.USER], ['users:delete'])
   async removeMyRecipe(
-    @Param('userId') userId: string,
     @Param('recipeId') recipeId: string,
+    @Request() req: any,
   ) {
+    const userId = req.user.sub;
     return this.userService.removeMyRecipe(userId, recipeId);
   }
 }

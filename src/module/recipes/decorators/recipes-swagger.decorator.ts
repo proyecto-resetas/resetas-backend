@@ -105,7 +105,13 @@ export function DocGetRecipesFilter() {
     ApiOperation({
       summary: 'Obtener recetas con filtros',
       description:
-        'Obtiene una lista paginada de recetas aplicando filtros opcionales por categoría, creador o nivel de dificultad.',
+        'Obtiene una lista paginada de recetas aplicando filtros opcionales por nombre, categoría, creador o nivel de dificultad.',
+    }),
+    ApiQuery({
+      name: 'name',
+      required: false,
+      description: 'Buscar por nombre de la receta (búsqueda parcial)',
+      example: 'Pasta',
     }),
     ApiQuery({
       name: 'category',
@@ -164,10 +170,13 @@ export function DocGetRecipesFilter() {
                 price: { type: 'number', example: 15.99 },
                 level: { type: 'string', example: 'Intermedio' },
                 category: { type: 'string', example: 'Italiana' },
-                ingredientsRecipe: { type: 'array' },
-                utensilRecipe: { type: 'array' },
-                steps: { type: 'array' },
-                createdBy: { type: 'string' },
+                createdBy: {
+                  type: 'object',
+                  properties: {
+                    username: { type: 'string', example: 'Juan' },
+                    lastname: { type: 'string', example: 'Pérez' },
+                  },
+                },
               },
             },
           },
@@ -306,10 +315,13 @@ export function DocGetAllRecipes() {
             price: { type: 'number', example: 15.99 },
             level: { type: 'string', example: 'Intermedio' },
             category: { type: 'string', example: 'Italiana' },
-            ingredientsRecipe: { type: 'array' },
-            utensilRecipe: { type: 'array' },
-            steps: { type: 'array' },
-            createdBy: { type: 'string' },
+            createdBy: {
+              type: 'object',
+              properties: {
+                username: { type: 'string' },
+                lastname: { type: 'string' },
+              },
+            },
             createdAt: { type: 'string', format: 'date-time' },
             updatedAt: { type: 'string', format: 'date-time' },
           },
@@ -509,6 +521,64 @@ export function DocDeleteRecipe() {
           message: {
             type: 'string',
             example: 'This action removes a #507f1f77bcf86cd799439011 receta',
+          },
+        },
+      },
+    }),
+    ApiResponse({
+      status: 400,
+      description: 'ID inválido',
+    }),
+    ApiResponse({
+      status: 404,
+      description: 'Receta no encontrada',
+    }),
+    ApiResponse({
+      status: 500,
+      description: 'Error interno del servidor',
+    }),
+  );
+}
+
+/**
+ * Decorador para documentar el endpoint de obtener ingredientes y utensilios por ID
+ */
+export function DocGetIngredientsAndUtensils() {
+  return applyDecorators(
+    ApiOperation({
+      summary: 'Obtener ingredientes y utensilios por ID de receta',
+      description:
+        'Obtiene únicamente la lista de ingredientes y utensilios de una receta específica utilizando su ID.',
+    }),
+    ApiParam({
+      name: 'id',
+      description: 'ID de la receta',
+      example: '507f1f77bcf86cd799439011',
+    }),
+    ApiResponse({
+      status: 200,
+      description: 'Ingredientes y utensilios encontrados exitosamente',
+      schema: {
+        type: 'object',
+        properties: {
+          ingredientsRecipe: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                description: { type: 'string', example: 'Pasta espagueti' },
+                amount: { type: 'string', example: '400g' },
+              },
+            },
+          },
+          utensilRecipe: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                utensil: { type: 'string', example: 'Olla grande' },
+              },
+            },
           },
         },
       },
