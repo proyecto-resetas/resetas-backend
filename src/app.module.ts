@@ -8,10 +8,10 @@ import dbConfig from './module/persistance/db-config';
 import { RecipesModule } from './module/recipes/recipes.module';
 import { StepsModule } from './module/steps/steps.module';
 import { S3Module } from './common/utils/s3/s3.module';
-import { PaymentWompiModule } from './module/payment_wompi/payment_wompi.module';
 import { ApiKeyModule } from './common/utils/apikey/apikey.module';
-import { APP_GUARD } from '@nestjs/core';
-import { ApiKeyGuard } from './common/guard/x-api-key/x-api-key.guard';
+//import { APP_GUARD } from '@nestjs/core';
+//import { ApiKeyGuard } from './common/guard/x-api-key/x-api-key.guard';
+import { OllamaModule } from './module/ollama/ollama.module';
 
 @Module({
   imports: [
@@ -27,8 +27,8 @@ import { ApiKeyGuard } from './common/guard/x-api-key/x-api-key.guard';
     RecipesModule,
     StepsModule,
     S3Module,
-    PaymentWompiModule,
     ApiKeyModule,
+    OllamaModule,
   ],
   controllers: [],
   // providers: [
@@ -37,7 +37,5 @@ import { ApiKeyGuard } from './common/guard/x-api-key/x-api-key.guard';
   //     useClass: ApiKeyGuard,
   //   },
   // ],
-  
 })
-
 export class AppModule {}

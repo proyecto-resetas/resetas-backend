@@ -1,6 +1,12 @@
 import { applyDecorators } from '@nestjs/common';
 import { ApiBody, ApiOperation, ApiResponse } from '@nestjs/swagger';
-import { RegisterDto, GenerateOtpDto, VerifyOtpDto, RefreshTokenDto } from '../../../module/auth/dto';
+import {
+  RegisterDto,
+  GenerateOtpDto,
+  VerifyOtpDto,
+  RefreshTokenDto,
+  VerifyOtpResponseDto,
+} from '../../../module/auth/dto';
 
 /**
  * Decorador para documentar el endpoint de registro de usuario
@@ -36,7 +42,10 @@ export function DocRegister() {
                   phoneNumber: { type: 'string', example: '3001234567' },
                 },
               },
-              photoUrl: { type: 'string', example: 'https://example.com/photo.jpg' },
+              photoUrl: {
+                type: 'string',
+                example: 'https://example.com/photo.jpg',
+              },
             },
           },
           access_token: {
@@ -110,39 +119,12 @@ export function DocVerifyOtp() {
     ApiResponse({
       status: 201,
       description: 'Código OTP verificado exitosamente. Login completado',
-      schema: {
-        type: 'object',
-        properties: {
-          message: {
-            type: 'string',
-            example: 'Código OTP verificado exitosamente. Login completado',
-          },
-          user: {
-            type: 'object',
-            properties: {
-              id: { type: 'string', example: '507f1f77bcf86cd799439011' },
-              username: { type: 'string', example: 'juan' },
-              lastname: { type: 'string', example: 'Pérez' },
-              email: { type: 'string', example: 'juan@ejemplo.com' },
-              role: { type: 'string', example: 'user' },
-              country: { type: 'string', example: 'Colombia' },
-              city: { type: 'string', example: 'Bogotá' },
-            },
-          },
-          access_token: {
-            type: 'string',
-            example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
-          },
-          refresh_token: {
-            type: 'string',
-            example: 'abc123def456ghi789...',
-          },
-        },
-      },
+      type: VerifyOtpResponseDto,
     }),
     ApiResponse({
       status: 400,
-      description: 'Código inválido, expirado, usuario no encontrado o se excedieron los intentos (máximo 3)',
+      description:
+        'Código inválido, expirado, usuario no encontrado o se excedieron los intentos (máximo 3)',
     }),
     ApiResponse({
       status: 500,

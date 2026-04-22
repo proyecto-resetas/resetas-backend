@@ -9,7 +9,9 @@ export class ApiKeyService {
   constructor(@InjectModel(ApiKey.name) private apiKeyModel: Model<ApiKey>) {}
 
   async validateApiKey(key: string): Promise<boolean> {
-    const apiKey = await this.apiKeyModel.findOne({ key, isActive: true }).exec();
+    const apiKey = await this.apiKeyModel
+      .findOne({ key, isActive: true })
+      .exec();
 
     if (!apiKey) {
       throw new UnauthorizedException('Invalid or missing API key');
@@ -21,13 +23,13 @@ export class ApiKeyService {
   // Método para crear nuevas claves de API (opcional)
   async createApiKey(apiKeyDto: ApiKeyDto) {
     const key = this.generateApiKey(); // Genera la API key
-  
+
     const { systemName } = apiKeyDto;
-  
+
     if (typeof systemName !== 'string') {
       throw new Error('systemName must be a string');
     }
-  
+
     // Crea la nueva API Key con el systemName y la key generada
     const newApiKey = new this.apiKeyModel({ key, systemName });
     return await newApiKey.save();
@@ -35,8 +37,6 @@ export class ApiKeyService {
 
   // Generador de API Key (puedes personalizarlo)
   private generateApiKey(): string {
-    return [...Array(30)]
-      .map(() => (Math.random() * 36).toString(36))
-      .join('');
+    return [...Array(30)].map(() => (Math.random() * 36).toString(36)).join('');
   }
 }

@@ -23,7 +23,7 @@ export class UserRoleGuard implements CanActivate {
     ]);
 
     // Corrección 1: Verificación inicial de roles permitidos
-    if (!validRoles ) return true;
+    if (!validRoles) return true;
 
     const req = context.switchToHttp().getRequest();
     const user = req.user;
@@ -31,14 +31,15 @@ export class UserRoleGuard implements CanActivate {
     console.log('User extracted from JWT:', user);
 
     // Corrección 2: Verificar que el usuario está autenticado
-    if (!user) throw new BadRequestException('User not found or not authenticated');
+    if (!user)
+      throw new BadRequestException('User not found or not authenticated');
 
     // Corrección 3: Verificar si el rol del usuario está en la lista de roles permitidos
     if (validRoles.includes(user.role)) return true;
 
     // Corrección 4: Lanzar una excepción más descriptiva si el usuario no tiene el rol adecuado
-    throw new ForbiddenException(`User requires one of the following roles: ${validRoles.join(', ')}`);
-
-    
+    throw new ForbiddenException(
+      `User requires one of the following roles: ${validRoles.join(', ')}`,
+    );
   }
 }

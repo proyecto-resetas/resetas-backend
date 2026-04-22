@@ -7,10 +7,10 @@ export class ApiKey extends Document {
   key: string;
 
   @Prop({ required: true })
-  systemName: string;  // Nombre del sistema autorizado
+  systemName: string; // Nombre del sistema autorizado
 
   @Prop({ default: true })
-  isActive: boolean;  // Indica si la clave está activa
+  isActive: boolean; // Indica si la clave está activa
 }
 
 export const ApiKeySchema = SchemaFactory.createForClass(ApiKey);

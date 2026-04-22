@@ -1,5 +1,11 @@
-import { BadRequestException, HttpException, Injectable, InternalServerErrorException, UnauthorizedException } from '@nestjs/common';
-import { LoginDto, RegisterDto } from './dto/index';
+import {
+  BadRequestException,
+  HttpException,
+  Injectable,
+  InternalServerErrorException,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { RegisterDto, VerifyOtpResponseDto } from './dto/index';
 import { UserService } from 'src/module/users/users.service';
 import { HashService } from 'src/common/utils/services/hash.service';
 import { JwtService } from '@nestjs/jwt';
@@ -10,6 +16,7 @@ import { Otp } from './entities/otp.entity';
 import { RefreshToken } from './entities/refresh-token.entity';
 import { TokenBlacklist } from './entities/token-blacklist.entity';
 import { BrevoService } from 'src/common/utils/services/brevo.service';
+import { RoleService } from '../roles/services/role.service';
 import * as crypto from 'crypto';
 
 @Injectable()
@@ -19,49 +26,49 @@ export class AuthService {
     private readonly hashService: HashService,
     private readonly userService: UserService,
     private readonly brevoService: BrevoService,
+    private readonly roleService: RoleService,
     @InjectModel(Otp.name) private readonly otpModel: Model<Otp>,
-    @InjectModel(RefreshToken.name) private readonly refreshTokenModel: Model<RefreshToken>,
-    @InjectModel(TokenBlacklist.name) private readonly tokenBlacklistModel: Model<TokenBlacklist>,
-  ){}
-  
+    @InjectModel(RefreshToken.name)
+    private readonly refreshTokenModel: Model<RefreshToken>,
+    @InjectModel(TokenBlacklist.name)
+    private readonly tokenBlacklistModel: Model<TokenBlacklist>,
+  ) {}
+
   async register(userRegister: RegisterDto) {
-   
     try {
       await this.validateEmailForSignUp(userRegister.email);
-      
-      const hashedPassword = await this.hashService.hash(userRegister.password);
-  
-      if (userRegister.role === 'admin' || 'user') {
 
+      const hashedPassword = await this.hashService.hash(userRegister.password);
+
+      if (userRegister.role === 'admin' || 'user') {
         const user = await this.userService.create({
           ...userRegister,
           password: hashedPassword,
         });
 
-        await this.generateOtp(user.email);
+        await this.generateOtp(user.email, userRegister.password);
         return {
           message: 'User registered successfully',
           email: user.email,
           role: user.role,
         };
       }
-  
     } catch (error) {
       console.error('Error during user registration:', error);
-      throw new InternalServerErrorException('Something went wrong during registration');
+      throw new InternalServerErrorException(
+        'Something went wrong during registration',
+      );
     }
   }
 
-
-async getTokens(jwtPayload: JwtPayload, userId?: string): Promise<Token> {
+  async getTokens(jwtPayload: JwtPayload, userId?: string): Promise<Token> {
     const secretKey = process.env.JWT_SECRET;
-    const refreshSecretKey = process.env.JWT_REFRESH_SECRET || secretKey;
-    
+
     if (!secretKey) {
       throw new Error('JWT_SECRET is not set');
     }
 
-    // Generar JTI único para el access token
+    // El JWT solo lleva identificador y rol; los permisos se validan en PermissionsGuard desde BD
     const jti = crypto.randomBytes(32).toString('hex');
     const payloadWithJti = { ...jwtPayload, jti };
 
@@ -78,7 +85,7 @@ async getTokens(jwtPayload: JwtPayload, userId?: string): Promise<Token> {
     // Generar refresh token
     const refreshToken = crypto.randomBytes(64).toString('hex');
     const refreshTokenExpiry = process.env.REFRESH_TOKEN_EXPIRY || '7d';
-    
+
     // Calcular fecha de expiración del refresh token
     const expiresAt = new Date();
     const expiryDays = parseInt(refreshTokenExpiry.replace('d', '')) || 7;
@@ -89,7 +96,7 @@ async getTokens(jwtPayload: JwtPayload, userId?: string): Promise<Token> {
       // Revocar refresh tokens anteriores del usuario
       await this.refreshTokenModel.updateMany(
         { userId, isRevoked: false },
-        { isRevoked: true }
+        { isRevoked: true },
       );
 
       // Guardar el nuevo refresh token
@@ -101,13 +108,13 @@ async getTokens(jwtPayload: JwtPayload, userId?: string): Promise<Token> {
       });
     }
 
-    return { 
+    return {
       access_token: accessToken,
-      refresh_token: refreshToken 
+      refresh_token: refreshToken,
     };
   }
 
-async signToken(payload: JwtPayload, secretKey: string, options: any) {
+  async signToken(payload: JwtPayload, secretKey: string, options: any) {
     return await this.jwtService.signAsync(payload, {
       secret: secretKey,
       ...options,
@@ -126,12 +133,26 @@ async signToken(payload: JwtPayload, secretKey: string, options: any) {
   /**
    * Genera un código OTP de 6 dígitos y lo envía por email usando Brevo
    */
-  async generateOtp(email: string): Promise<{ message: string }> {
+  async generateOtp(
+    email: string,
+    password: string,
+  ): Promise<{ message: string }> {
     try {
-      // Verificar si el usuario existe
+      // Verificar si el usuario existe y la contraseña es correcta
       const user = await this.userService.findOneByEmail(email);
       if (!user) {
-        throw new BadRequestException('El usuario no existe');
+        throw new BadRequestException(
+          'El usuario no existe o la contraseña es incorrecta',
+        );
+      }
+
+      // Verificar si la contraseña es correcta
+      const isPasswordCorrect = await this.hashService.compare(
+        password,
+        user.password,
+      );
+      if (!isPasswordCorrect) {
+        throw new BadRequestException('La contraseña es incorrecta');
       }
 
       // Generar código OTP de 6 dígitos
@@ -171,16 +192,20 @@ async signToken(payload: JwtPayload, secretKey: string, options: any) {
   /**
    * Verifica el código OTP ingresado por el usuario y genera tokens JWT
    */
-  async verifyOtp(email: string, code: string): Promise<{ message: string; user: any; access_token: string; refresh_token: string }> {
+  async verifyOtp(email: string, code: string): Promise<VerifyOtpResponseDto> {
     try {
       // Buscar el OTP más reciente para este email
-      const otp = await this.otpModel.findOne({ 
-        email, 
-        verified: false 
-      }).sort({ createdAt: -1 });
+      const otp = await this.otpModel
+        .findOne({
+          email,
+          verified: false,
+        })
+        .sort({ createdAt: -1 });
 
       if (!otp) {
-        throw new BadRequestException('No se encontró un código OTP válido para este email');
+        throw new BadRequestException(
+          'No se encontró un código OTP válido para este email',
+        );
       }
 
       // Verificar si el OTP ha expirado
@@ -192,7 +217,9 @@ async signToken(payload: JwtPayload, secretKey: string, options: any) {
       // Verificar el número de intentos (máximo 3)
       if (otp.attempts >= 3) {
         await this.otpModel.deleteOne({ _id: otp._id });
-        throw new BadRequestException('Has excedido el número máximo de intentos');
+        throw new BadRequestException(
+          'Has excedido el número máximo de intentos',
+        );
       }
 
       // Verificar si el código es correcto
@@ -200,10 +227,10 @@ async signToken(payload: JwtPayload, secretKey: string, options: any) {
         // Incrementar el contador de intentos
         otp.attempts += 1;
         await otp.save();
-        
+
         const attemptsLeft = 3 - otp.attempts;
         throw new BadRequestException(
-          `Código incorrecto. Te quedan ${attemptsLeft} intento(s)`
+          `Código incorrecto. Te quedan ${attemptsLeft} intento(s)`,
         );
       }
 
@@ -213,12 +240,19 @@ async signToken(payload: JwtPayload, secretKey: string, options: any) {
         throw new BadRequestException('Usuario no encontrado');
       }
 
-      // Generar tokens JWT (incluyendo refresh token)
-      const tokens = await this.getTokens({
-        sub: user.id,
-        username: user.username,
-        role: user.role,
-      }, user.id);
+      // Permisos solo para la respuesta al cliente; el JWT no los incluye
+      const permissions = await this.roleService.getPermissionsByRoleName(
+        user.role,
+      );
+
+      const tokens = await this.getTokens(
+        {
+          sub: user.id,
+          username: user.username,
+          role: user.role,
+        },
+        user.id,
+      );
 
       // Marcar el OTP como verificado
       otp.verified = true;
@@ -226,7 +260,11 @@ async signToken(payload: JwtPayload, secretKey: string, options: any) {
 
       return {
         message: 'Código OTP verificado exitosamente. Login completado',
-        user,
+        userId: user.id,
+        email: user.email,
+        username: user.username,
+        role: user.role,
+        permissions,
         ...tokens,
       };
     } catch (error) {
@@ -234,14 +272,18 @@ async signToken(payload: JwtPayload, secretKey: string, options: any) {
       if (error instanceof BadRequestException) {
         throw error;
       }
-      throw new InternalServerErrorException('Error al verificar el código OTP');
+      throw new InternalServerErrorException(
+        'Error al verificar el código OTP',
+      );
     }
   }
 
   /**
    * Refresca el access token usando un refresh token válido
    */
-  async refreshToken(refreshToken: string): Promise<{ access_token: string; refresh_token: string }> {
+  async refreshToken(
+    refreshToken: string,
+  ): Promise<{ access_token: string; refresh_token: string }> {
     try {
       // Buscar el refresh token en la base de datos
       const storedToken = await this.refreshTokenModel.findOne({
@@ -257,7 +299,7 @@ async signToken(payload: JwtPayload, secretKey: string, options: any) {
       if (new Date() > storedToken.expiresAt) {
         await this.refreshTokenModel.updateOne(
           { _id: storedToken._id },
-          { isRevoked: true }
+          { isRevoked: true },
         );
         throw new UnauthorizedException('Refresh token expirado');
       }
@@ -271,15 +313,17 @@ async signToken(payload: JwtPayload, secretKey: string, options: any) {
       // Revocar el refresh token actual
       await this.refreshTokenModel.updateOne(
         { _id: storedToken._id },
-        { isRevoked: true }
+        { isRevoked: true },
       );
 
-      // Generar nuevos tokens
-      const tokens = await this.getTokens({
-        sub: user.id,
-        username: user.username,
-        role: user.role,
-      }, user.id);
+      const tokens = await this.getTokens(
+        {
+          sub: user.id,
+          username: user.username,
+          role: user.role,
+        },
+        user.id,
+      );
 
       return tokens;
     } catch (error) {
@@ -294,7 +338,10 @@ async signToken(payload: JwtPayload, secretKey: string, options: any) {
   /**
    * Realiza logout invalidando los tokens del usuario
    */
-  async logout(accessToken: string, userId: string): Promise<{ message: string }> {
+  async logout(
+    accessToken: string,
+    userId: string,
+  ): Promise<{ message: string }> {
     try {
       // Decodificar el token para obtener su expiración
       let expiresAt: Date;
@@ -323,7 +370,7 @@ async signToken(payload: JwtPayload, secretKey: string, options: any) {
       // Revocar todos los refresh tokens activos del usuario
       await this.refreshTokenModel.updateMany(
         { userId, isRevoked: false },
-        { isRevoked: true }
+        { isRevoked: true },
       );
 
       return {
@@ -342,5 +389,4 @@ async signToken(payload: JwtPayload, secretKey: string, options: any) {
     const blacklisted = await this.tokenBlacklistModel.findOne({ token });
     return !!blacklisted;
   }
-
 }

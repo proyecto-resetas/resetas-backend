@@ -8,13 +8,20 @@ import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Otp, OtpSchema } from './entities/otp.entity';
-import { RefreshToken, RefreshTokenSchema } from './entities/refresh-token.entity';
-import { TokenBlacklist, TokenBlacklistSchema } from './entities/token-blacklist.entity';
+import {
+  RefreshToken,
+  RefreshTokenSchema,
+} from './entities/refresh-token.entity';
+import {
+  TokenBlacklist,
+  TokenBlacklistSchema,
+} from './entities/token-blacklist.entity';
 import { BrevoService } from 'src/common/utils/services/brevo.service';
+import { RolesModule } from '../roles/roles.module';
 
 @Module({
   imports: [
-    PassportModule, 
+    PassportModule,
     JwtModule.register({
       secret: process.env.JWT_SECRET,
       signOptions: { expiresIn: process.env.ACCESS_TOKEN_EXPIRY || '15m' },
@@ -22,10 +29,11 @@ import { BrevoService } from 'src/common/utils/services/brevo.service';
     MongooseModule.forFeature([
       { name: Otp.name, schema: OtpSchema },
       { name: RefreshToken.name, schema: RefreshTokenSchema },
-      { name: TokenBlacklist.name, schema: TokenBlacklistSchema }
+      { name: TokenBlacklist.name, schema: TokenBlacklistSchema },
     ]),
     UtilsModule,
     UsersModule,
+    RolesModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy, BrevoService],
