@@ -143,9 +143,7 @@ export class RecetasController {
     @Request() req: any,
   ): Promise<Recipe> {
     const userId = req.user?.sub;
-    const newRecipe = await this.recipesService.create(createRecetaDto, userId);
-    console.log(newRecipe);
-    return newRecipe;
+    const newRecipe = await this.recipesService.create(createRecetaDto, userId);    return newRecipe;
   }
 
   @Get('getRecipeFilter')
