@@ -12,9 +12,6 @@ import { UserService } from './users.service';
 import { UpdateUserDto } from './dto';
 import { ApiTags } from '@nestjs/swagger';
 import { UserRole } from 'src/common/guard/roles.enum';
-import { Auth } from 'src/common/decorators/auth.decorator';
-import { MyFavorite } from './entities/my-favorite.entity';
-import { CreateFavoriteDto } from './dto/create-favorite.dto';
 import {
   DocGetUserByEmail,
   DocGetUserById,

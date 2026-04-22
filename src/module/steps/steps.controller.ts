@@ -29,14 +29,14 @@ export class StepsController {
   constructor(private readonly stepsService: StepsService) {}
 
   @Post()
-  @Secure([UserRole.ADMIN, UserRole.USER] , ['steps:create'])
+  @Secure([UserRole.ADMIN, UserRole.USER], ['steps:create'])
   @DocCreateStep()
   create(@Body() createStepDto: StepDto) {
     return this.stepsService.create(createStepDto);
   }
 
   @Get()
-  @Secure([UserRole.ADMIN, UserRole.USER] , ['steps:read'])
+  @Secure([UserRole.ADMIN, UserRole.USER], ['steps:read'])
   @DocGetAllSteps()
   findAll() {
     return this.stepsService.findAll();
@@ -57,18 +57,25 @@ export class StepsController {
     @Request() req: any,
   ) {
     const userId = req.user?.sub;
-    return this.stepsService.findStepsByRecipeForUser(recipeId, userId);
+    const steps = await this.stepsService.findStepsByRecipeForUser(
+      recipeId,
+      userId,
+    );
+    return {
+      message: 'Steps found successfully',
+      data: steps,
+    };
   }
 
   @Patch(':id')
-  @Secure([UserRole.ADMIN] , ['steps:update'])
+  @Secure([UserRole.ADMIN], ['steps:update'])
   @DocUpdateStep()
   update(@Param('id') id: string, @Body() updateStepDto: UpdateStepDto) {
     return this.stepsService.update(id, updateStepDto);
   }
 
   @Delete(':id')
-  @Secure([UserRole.ADMIN] , ['steps:delete'])
+  @Secure([UserRole.ADMIN], ['steps:delete'])
   @DocDeleteStep()
   remove(@Param('id') id: string) {
     return this.stepsService.remove(id);

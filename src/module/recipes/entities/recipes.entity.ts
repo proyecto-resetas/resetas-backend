@@ -5,7 +5,6 @@ import {
   IsString,
   IsEnum,
   IsUrl,
-  ValidateNested,
 } from '@nestjs/class-validator';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Types } from 'mongoose';

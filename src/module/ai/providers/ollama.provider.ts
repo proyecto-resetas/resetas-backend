@@ -15,14 +15,20 @@ export class OllamaProvider implements IAIProvider {
   ) {}
 
   private get baseUrl(): string {
-    return this.configService.get<string>('OLLAMA_BASE_URL')?.replace(/\/$/, '') || 'http://localhost:11434';
+    return (
+      this.configService.get<string>('OLLAMA_BASE_URL')?.replace(/\/$/, '') ||
+      'http://localhost:11434'
+    );
   }
 
   private get defaultModel(): string {
     return this.configService.get<string>('OLLAMA_MODEL') || 'llama3';
   }
 
-  async generateResponse(prompt: string, options?: AIRequestOptions): Promise<AIResponse> {
+  async generateResponse(
+    prompt: string,
+    options?: AIRequestOptions,
+  ): Promise<AIResponse> {
     const model = options?.model || this.defaultModel;
     const url = `${this.baseUrl}/api/generate`;
 
@@ -36,7 +42,8 @@ export class OllamaProvider implements IAIProvider {
     try {
       const response = await firstValueFrom(
         this.httpService.post(url, body, {
-          timeout: this.configService.get<number>('OLLAMA_TIMEOUT_MS') || 300_000,
+          timeout:
+            this.configService.get<number>('OLLAMA_TIMEOUT_MS') || 300_000,
         }),
       );
 
@@ -49,7 +56,9 @@ export class OllamaProvider implements IAIProvider {
 
   private handleError(error: any) {
     if (error instanceof AxiosError) {
-      this.logger.error(`Ollama request failed: ${JSON.stringify(error.response?.data)}`);
+      this.logger.error(
+        `Ollama request failed: ${JSON.stringify(error.response?.data)}`,
+      );
       throw new Error(`Ollama Error: ${error.message}`);
     }
     throw error;

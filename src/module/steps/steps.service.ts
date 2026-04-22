@@ -60,8 +60,10 @@ export class StepsService {
     recipeId: string,
     userId: string,
   ): Promise<Step[]> {
+    console.log(recipeId, userId);
     // 1. Buscar al usuario y verificar si tiene la receta en sus 'myRecipes'
     const user = await this.userService.findOneById(userId);
+    console.log(user);
     const hasRecipe = user.myRecipe?.some((r) => r.idRecipe === recipeId);
 
     if (!hasRecipe) {

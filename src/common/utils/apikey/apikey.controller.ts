@@ -10,7 +10,7 @@ export class ApiKeyController {
   constructor(private readonly apiKeyService: ApiKeyService) {}
 
   @Post('createApiKey')
-  @Secure([UserRole.ADMIN] , ['apikey:create'])
+  @Secure([UserRole.ADMIN], ['apikey:create'])
   async createApiKey(@Body() apiKeyDto: ApiKeyDto) {
     return await this.apiKeyService.createApiKey(apiKeyDto);
   }
