@@ -57,7 +57,12 @@ export class StepsController {
     @Request() req: any,
   ) {
     const userId = req.user?.sub;
-    return this.stepsService.findStepsByRecipeForUser(recipeId, userId);
+     const steps = await this.stepsService.findStepsByRecipeForUser(recipeId, userId);
+     return {
+      message: 'Steps found successfully',
+      data: steps,
+     }
+
   }
 
   @Patch(':id')
