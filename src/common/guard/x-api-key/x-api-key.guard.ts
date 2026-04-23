@@ -14,7 +14,8 @@ export class ApiKeyGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request: Request = context.switchToHttp().getRequest();
 
-    // Excluir rutas de Swagger y la raíz del chequeo de API Key
+    // Normalizamos el path a minúsculas para evitar problemas de casing
+    const path = request.path.toLowerCase();
     const publicPaths = ['/api', '/api-json', '/api-yaml', '/favicon.ico', '/'];
     if (publicPaths.includes(request.path) || request.path.includes('/api')) {
       return true;
