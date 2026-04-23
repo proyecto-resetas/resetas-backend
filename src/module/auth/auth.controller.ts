@@ -31,6 +31,7 @@ export class AuthController {
   @Post('register')
   @DocRegister()
   async registerUser(@Body() createAuthDto: RegisterDto) {
+    console.log(createAuthDto);
     const token = await this.authService.register(createAuthDto);
     return token;
   }
@@ -38,6 +39,8 @@ export class AuthController {
   @Post('otp/login')
   @DocGenerateOtp()
   async generateOtp(@Body() generateOtpDto: GenerateOtpDto) {
+
+    console.log(generateOtpDto);
     return this.authService.generateOtp(
       generateOtpDto.email,
       generateOtpDto.password,
