@@ -11,7 +11,7 @@ async function bootstrap() {
   //app.useGlobalGuards(new ApiKeyGuard(apiKeyService)); // Pasa la instancia al guard 
   //app.setGlobalPrefix('api/v1', { exclude: ['/api-doc'] });
 
-  const port = process.env.PORT || 3000;
+  const port = process.env.PORT || 3001; // Cambiado a 3001 para evitar conflictos comunes
   app.setGlobalPrefix('', { exclude: ['/', 'api'] });
   app.enableCors({
     origin: '*',

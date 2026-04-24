@@ -11,7 +11,7 @@ interface SendEmailParams {
 
 @Injectable()
 export class BrevoService {
-  private readonly apiUrl = 'https://api.brevo.com/v3/smtp/email';
+  private readonly apiUrl = process.env.BREVO_API_URL;
   private readonly apiKey: string;
 
   constructor() {
@@ -29,9 +29,14 @@ export class BrevoService {
       subject,
       htmlContent,
       senderName = 'Recetarium',
-      senderEmail = process.env.BREVO_SENDER_EMAIL ||
-        'danielestebanjimenezlopez@gmail.com',
+      senderEmail = process.env.BREVO_SENDER_EMAIL,
     } = params;
+
+    if (!senderEmail) {
+      throw new InternalServerErrorException(
+        'BREVO_SENDER_EMAIL no está configurada',
+      );
+    }
 
     try {
       const response = await axios.post(
