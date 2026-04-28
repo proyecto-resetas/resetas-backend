@@ -1,14 +1,14 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import { ApiKeyGuard } from './common/guard/x-api-key/x-api-key.guard';
-import { ApiKeyService } from './common/utils/apikey/apikey.service';
+//import { ApiKeyGuard } from './common/guard/x-api-key/x-api-key.guard';
+//import { ApiKeyService } from './common/utils/apikey/apikey.service';
 import { ValidationPipe } from '@nestjs/common';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  const apiKeyService = app.get(ApiKeyService); // Obtén el servicio desde el contenedor
-  app.useGlobalGuards(new ApiKeyGuard(apiKeyService)); // Pasa la instancia al guard
+  //const apiKeyService = app.get(ApiKeyService); // Obtén el servicio desde el contenedor
+  //app.useGlobalGuards(new ApiKeyGuard(apiKeyService)); // Pasa la instancia al guard
   //app.setGlobalPrefix('api/v1', { exclude: ['/api-doc'] });
 
   const port = process.env.PORT || 3001; // Cambiado a 3001 para evitar conflictos comunes
