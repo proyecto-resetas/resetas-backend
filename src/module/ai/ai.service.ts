@@ -43,11 +43,10 @@ export class AIService {
     prompt: string,
     options?: AIRequestOptions & { provider?: AIProvider },
   ): Promise<AIResponse> {
+    const aiConfig = this.configService.get('aiConfig');
     const providerType =
-      options?.provider ??
-      this.configService.get<AIProvider>('DEFAULT_AI_PROVIDER') ??
-      AIProvider.OLLAMA;
-    const provider = this.providers.get(providerType);
+      options?.provider ?? aiConfig.defaultProvider ?? AIProvider.OLLAMA;
+    const provider = this.providers.get(providerType as AIProvider);
 
     if (!provider) {
       throw new Error(`AI Provider ${providerType} not found`);

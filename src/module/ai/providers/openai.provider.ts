@@ -15,11 +15,13 @@ export class OpenAIProvider implements IAIProvider {
   ) {}
 
   private get apiKey(): string {
-    return this.configService.get<string>('OPENAI_API_KEY');
+    const aiConfig = this.configService.get('aiConfig');
+    return aiConfig.openai.apiKey;
   }
 
   private get defaultModel(): string {
-    return this.configService.get<string>('OPENAI_MODEL') || 'gpt-4o-mini';
+    const aiConfig = this.configService.get('aiConfig');
+    return aiConfig.openai.model;
   }
 
   async generateResponse(

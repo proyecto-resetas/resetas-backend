@@ -15,11 +15,13 @@ export class GeminiProvider implements IAIProvider {
   ) {}
 
   private get apiKey(): string {
-    return this.configService.get<string>('GEMINI_API_KEY');
+    const aiConfig = this.configService.get('aiConfig');
+    return aiConfig.gemini.apiKey;
   }
 
   private get defaultModel(): string {
-    return this.configService.get<string>('GEMINI_MODEL') || 'gemini-1.5-flash';
+    const aiConfig = this.configService.get('aiConfig');
+    return aiConfig.gemini.model;
   }
 
   async generateResponse(
