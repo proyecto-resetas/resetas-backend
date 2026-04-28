@@ -33,7 +33,6 @@ export class PermissionsGuard implements CanActivate {
     const req = context.switchToHttp().getRequest();
     const user = req.user;
 
-
     if (!user) {
       throw new ForbiddenException('Usuario no autenticado');
     }

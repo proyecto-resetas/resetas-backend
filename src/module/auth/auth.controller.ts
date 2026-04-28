@@ -39,7 +39,6 @@ export class AuthController {
   @Post('otp/login')
   @DocGenerateOtp()
   async generateOtp(@Body() generateOtpDto: GenerateOtpDto) {
-
     console.log(generateOtpDto);
     return this.authService.generateOtp(
       generateOtpDto.email,

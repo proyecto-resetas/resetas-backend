@@ -8,8 +8,9 @@ import dbConfig from './db-config';
   imports: [
     MongooseModule.forRootAsync({
       useFactory: (configService: ConfigType<typeof dbConfig>) => {
-        // TODO: const { db } = configService;
-        const uriDb = process.env.MONGODB_URI;
+        const { db } = configService;
+        const uriDb =
+          process.env.MONGODB_URI || `${db.connection}://${db.host}/${db.name}`;
         return {
           uri: uriDb,
         };

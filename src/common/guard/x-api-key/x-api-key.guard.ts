@@ -15,7 +15,6 @@ export class ApiKeyGuard implements CanActivate {
     const request: Request = context.switchToHttp().getRequest();
 
     // Normalizamos el path a minúsculas para evitar problemas de casing
-    const path = request.path.toLowerCase();
     const publicPaths = ['/api', '/api-json', '/api-yaml', '/favicon.ico', '/'];
     if (publicPaths.includes(request.path) || request.path.includes('/api')) {
       return true;

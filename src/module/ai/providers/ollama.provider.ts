@@ -15,20 +15,20 @@ export class OllamaProvider implements IAIProvider {
   ) {}
 
   private get baseUrl(): string {
-    return (
-      this.configService.get<string>('OLLAMA_BASE_URL')?.replace(/\/$/, '') ||
-      'http://localhost:11434'
-    );
+    const aiConfig = this.configService.get('aiConfig');
+    return aiConfig.ollama.baseUrl.replace(/\/$/, '');
   }
 
   private get defaultModel(): string {
-    return this.configService.get<string>('OLLAMA_MODEL') || 'llama3';
+    const aiConfig = this.configService.get('aiConfig');
+    return aiConfig.ollama.model;
   }
 
   async generateResponse(
     prompt: string,
     options?: AIRequestOptions,
   ): Promise<AIResponse> {
+    const aiConfig = this.configService.get('aiConfig');
     const model = options?.model || this.defaultModel;
     const url = `${this.baseUrl}/api/generate`;
 
@@ -42,8 +42,7 @@ export class OllamaProvider implements IAIProvider {
     try {
       const response = await firstValueFrom(
         this.httpService.post(url, body, {
-          timeout:
-            this.configService.get<number>('OLLAMA_TIMEOUT_MS') || 300_000,
+          timeout: aiConfig.ollama.timeout,
         }),
       );
 
