@@ -12,7 +12,7 @@ async function bootstrap() {
   //app.setGlobalPrefix('api/v1', { exclude: ['/api-doc'] });
 
   const port = process.env.PORT || 3001; // Cambiado a 3001 para evitar conflictos comunes
-  app.setGlobalPrefix('', { exclude: ['/', 'api', '/api-doc'] });
+  //app.setGlobalPrefix('', { exclude: ['/', 'api', '/api-doc'] });
   app.enableCors({
     origin: '*',
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',

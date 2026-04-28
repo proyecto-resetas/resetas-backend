@@ -1,9 +1,0 @@
-[build]
-  command = "npm run build"
-  publish = "dist"
-
-[build.environment]
-  # Estos campos NO son secretos pero sus valores coinciden con palabras en el código (False Positives)
-  SECRETS_SCAN_OMIT_KEYS = "PORT,DB_NAME,DEFAULT_AI_PROVIDER,OLLAMA_BASE_URL,OPENAI_MODEL,GEMINI_MODEL,AWS_REGION,DB_CONNECTION,DB_HOST"
-  # Omitimos archivos de documentación y configuración que no van al cliente
-  SECRETS_SCAN_OMIT_PATHS = "package-lock.json,*.md,.github/workflows/ci.yml"
