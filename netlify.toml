@@ -1,0 +1,10 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  # Estos campos NO son secretos pero sus valores a veces coinciden con palabras en el código
+  # Por ejemplo, si DB_NAME es "resetas", Netlify marcará error cada vez que vea "resetas"
+  SECRETS_SCAN_OMIT_KEYS = '["PORT", "DB_NAME", "DEFAULT_AI_PROVIDER", "OLLAMA_BASE_URL", "OPENAI_MODEL", "GEMINI_MODEL", "AWS_REGION"]'
+  # Si el escaneo sigue bloqueando falsos positivos persistentes, podrías desactivarlo (NO RECOMENDADO si hay llaves reales)
+  # SECRETS_SCAN_ENABLED = "false"

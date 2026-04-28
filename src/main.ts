@@ -7,12 +7,12 @@ import { ValidationPipe } from '@nestjs/common';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  //const apiKeyService = app.get(ApiKeyService); // Obtén el servicio desde el contenedor
-  //app.useGlobalGuards(new ApiKeyGuard(apiKeyService)); // Pasa la instancia al guard 
+  const apiKeyService = app.get(ApiKeyService); // Obtén el servicio desde el contenedor
+  app.useGlobalGuards(new ApiKeyGuard(apiKeyService)); // Pasa la instancia al guard
   //app.setGlobalPrefix('api/v1', { exclude: ['/api-doc'] });
 
   const port = process.env.PORT || 3001; // Cambiado a 3001 para evitar conflictos comunes
-  app.setGlobalPrefix('', { exclude: ['/', 'api'] });
+  app.setGlobalPrefix('', { exclude: ['/', 'api', '/api-doc'] });
   app.enableCors({
     origin: '*',
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
