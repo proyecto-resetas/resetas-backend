@@ -12,9 +12,12 @@ import {
   GenerateOtpDto,
   VerifyOtpDto,
   RefreshTokenDto,
+  ForgotPasswordDto,
+  ResetPasswordDto,
 } from './dto';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/common/guard/jwt.guard';
+import { Request as ExpressRequest } from 'express';
 import {
   DocRegister,
   DocGenerateOtp,
@@ -59,18 +62,29 @@ export class AuthController {
     return this.authService.refreshToken(refreshTokenDto.refresh_token);
   }
 
+
   @Post('logout')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @DocLogout()
-  async logout(@Request() req: any) {
+  async logout(@Request() req: ExpressRequest) {
     const accessToken = req.headers.authorization?.replace('Bearer ', '');
-    const userId = req.user?.sub;
+    const userId = (req as any).user?.sub;
 
     if (!accessToken || !userId) {
       throw new BadRequestException('Token o usuario no encontrado');
     }
 
     return this.authService.logout(accessToken, userId);
+  }
+
+  @Post('forgot-password')
+  async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
+    return this.authService.initiatePasswordRecovery(forgotPasswordDto);
+  }
+
+  @Post('reset-password')
+  async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
+    return this.authService.resetPassword(resetPasswordDto);
   }
 }

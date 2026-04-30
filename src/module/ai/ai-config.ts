@@ -2,6 +2,7 @@ import { registerAs } from '@nestjs/config';
 
 export default registerAs('aiConfig', () => ({
   defaultProvider: process.env.DEFAULT_AI_PROVIDER || 'ollama',
+  recipePromptName: process.env.RECIPE_PROMPT_NAME || 'RECIPE_ANALYSIS_OLLAMA',
   ollama: {
     baseUrl: process.env.OLLAMA_BASE_URL || 'http://localhost:11434',
     model: process.env.OLLAMA_MODEL || 'llama3',

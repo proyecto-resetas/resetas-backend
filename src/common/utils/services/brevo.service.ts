@@ -74,7 +74,17 @@ export class BrevoService {
     }
   }
 
-  async sendOtpEmail(email: string, code: string): Promise<void> {
+  async sendOtpEmail(
+    email: string,
+    code: string,
+    type: 'login' | 'password_recovery' = 'login',
+  ): Promise<void> {
+    const isRecovery = type === 'password_recovery';
+    const title = isRecovery ? 'Recuperación de Cuenta' : 'Código de Verificación';
+    const message = isRecovery
+      ? 'Has solicitado recuperar tu contraseña en <strong>Recetarium</strong>. Por favor, confirma que eres tú quien está intentando cambiar la contraseña usando el siguiente código:'
+      : 'Has solicitado un código de verificación para acceder a tu cuenta en <strong>Recetarium</strong>.';
+
     const htmlContent = `
      <!DOCTYPE html>
         <html lang="es">
@@ -182,7 +192,7 @@ export class BrevoService {
 
               <div class="content">
                 <h2>¡Hola! 👨‍🍳</h2>
-                <p>Has solicitado un código de verificación para acceder a tu cuenta en <strong>Recetarium</strong>.</p>
+                <p>${message}</p>
                 
                 <div class="otp-container">
                   <p style="margin-top: 0; font-weight: 600; color: #FF9800;">TU CÓDIGO DE SEGURIDAD</p>
@@ -205,7 +215,7 @@ export class BrevoService {
 
     await this.sendEmail({
       to: email,
-      subject: 'Código de Verificación - Resetas',
+      subject: `${title} - Resetas`,
       htmlContent,
     });
   }

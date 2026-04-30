@@ -25,14 +25,14 @@ import { Secure } from 'src/common/decorators/secure.decorator';
 export default class UsersController {
   constructor(private readonly userService: UserService) {}
 
-  @Secure([UserRole.ADMIN], ['users:read'])
+  @Secure([UserRole.ADMIN, UserRole.USER], ['users:read'])
   @Post(':email')
   @DocGetUserByEmail()
   findOne(@Param('email') email: string) {
     return this.userService.findOneByEmail(email);
   }
 
-  @Secure([UserRole.ADMIN], ['users:read'])
+  @Secure([UserRole.ADMIN, UserRole.USER], ['users:read'])
   @Get(':id')
   @DocGetUserById()
   findById(@Param('id') id: string) {
@@ -40,14 +40,14 @@ export default class UsersController {
   }
 
   @Patch(':id')
-  @Secure([UserRole.ADMIN], ['users:update'])
+  @Secure([UserRole.ADMIN, UserRole.USER], ['users:update'])
   @DocUpdateUser()
   update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
     return this.userService.update(id, updateUserDto);
   }
 
   @Delete(':id')
-  @Secure([UserRole.ADMIN], ['users:delete'])
+  @Secure([UserRole.ADMIN, UserRole.USER], ['users:delete'])
   @DocDeleteUser()
   remove(@Param('id') id: string) {
     return this.userService.remove(id);

@@ -17,6 +17,9 @@ export class Otp extends Document {
 
   @Prop({ default: 0 })
   attempts: number;
+
+  @Prop({ enum: ['login', 'password_recovery'], default: 'login' })
+  type: string;
 }
 
 export const OtpSchema = SchemaFactory.createForClass(Otp);

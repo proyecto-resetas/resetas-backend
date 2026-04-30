@@ -5,7 +5,12 @@ import {
   InternalServerErrorException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { RegisterDto, VerifyOtpResponseDto } from './dto/index';
+import {
+  ForgotPasswordDto,
+  RegisterDto,
+  ResetPasswordDto,
+  VerifyOtpResponseDto,
+} from './dto/index';
 import { UserService } from 'src/module/users/users.service';
 import { HashService } from 'src/common/utils/services/hash.service';
 import { JwtService } from '@nestjs/jwt';
@@ -190,7 +195,9 @@ export class AuthService {
   }
 
   /**
-   * Verifica el código OTP ingresado por el usuario y genera tokens JWT
+   * Verifica el código OTP ingresado por el usuario.
+   * Si es para login, genera tokens.
+   * Si es para recuperación, permite el cambio de contraseña en el siguiente paso.
    */
   async verifyOtp(email: string, code: string): Promise<VerifyOtpResponseDto> {
     try {
@@ -234,13 +241,29 @@ export class AuthService {
         );
       }
 
-      // Obtener el usuario para generar los tokens
+      // Obtener el usuario
       const user = await this.userService.findOneByEmail(email);
       if (!user) {
         throw new BadRequestException('Usuario no encontrado');
       }
 
-      // Permisos solo para la respuesta al cliente; el JWT no los incluye
+      // Marcar el OTP como verificado
+      otp.verified = true;
+      await otp.save();
+
+      // Si el OTP es para recuperación de contraseña, no generamos tokens de sesión todavía
+      if (otp.type === 'password_recovery') {
+        return {
+          message:
+            'Código de recuperación verificado exitosamente. Ahora puedes cambiar tu contraseña.',
+          userId: user.id,
+          email: user.email,
+          username: user.username,
+          role: user.role,
+        } as VerifyOtpResponseDto;
+      }
+
+      // Si es para login normal, generamos los tokens
       const permissions = await this.roleService.getPermissionsByRoleName(
         user.role,
       );
@@ -253,10 +276,6 @@ export class AuthService {
         },
         user.id,
       );
-
-      // Marcar el OTP como verificado
-      otp.verified = true;
-      await otp.save();
 
       return {
         message: 'Código OTP verificado exitosamente. Login completado',
@@ -388,5 +407,110 @@ export class AuthService {
   async isTokenBlacklisted(token: string): Promise<boolean> {
     const blacklisted = await this.tokenBlacklistModel.findOne({ token });
     return !!blacklisted;
+  }
+
+  /**
+   * Inicia el proceso de recuperación de contraseña enviando un OTP
+   */
+  async initiatePasswordRecovery(
+    forgotPasswordDto: ForgotPasswordDto,
+  ): Promise<{ message: string }> {
+    const { email } = forgotPasswordDto;
+
+    try {
+      // Verificar si el usuario existe
+      const user = await this.userService.findOneByEmail(email);
+      if (!user) {
+        // Por seguridad, devolvemos un mensaje genérico aunque el usuario no exista
+        return {
+          message:
+            'Si el correo está registrado, recibirás un código de recuperación',
+        };
+      }
+
+      // Generar código OTP de 6 dígitos
+      const code = Math.floor(100000 + Math.random() * 900000).toString();
+
+      // Calcular fecha de expiración (10 minutos)
+      const expiresAt = new Date();
+      expiresAt.setMinutes(expiresAt.getMinutes() + 10);
+
+      // Eliminar OTPs anteriores del mismo email y tipo recovery
+      await this.otpModel.deleteMany({ email, type: 'password_recovery' });
+
+      // Guardar el OTP en la base de datos
+      await this.otpModel.create({
+        email,
+        code,
+        expiresAt,
+        verified: false,
+        attempts: 0,
+        type: 'password_recovery',
+      });
+
+      // Enviar el OTP por email indicando que es para recuperación
+      await this.brevoService.sendOtpEmail(email, code, 'password_recovery');
+
+      return {
+        message: 'Código de recuperación enviado exitosamente al email',
+      };
+    } catch (error) {
+      console.error('Error al iniciar recuperación:', error);
+      throw new InternalServerErrorException(
+        'Error al procesar la solicitud de recuperación',
+      );
+    }
+  }
+
+  /**
+   * Cambia la contraseña después de haber verificado el OTP exitosamente.
+   * Requiere que exista un OTP de recuperación ya marcado como verified: true.
+   */
+  async resetPassword(
+    resetPasswordDto: ResetPasswordDto,
+  ): Promise<{ message: string }> {
+    const { email, newPassword } = resetPasswordDto;
+
+    try {
+      // Buscar el OTP de recuperación verificado
+      const otp = await this.otpModel
+        .findOne({
+          email,
+          verified: true,
+          type: 'password_recovery',
+        })
+        .sort({ updatedAt: -1 });
+
+      if (!otp) {
+        throw new BadRequestException(
+          'Debes verificar el código antes de cambiar la contraseña o el código ha expirado',
+        );
+      }
+
+      // Obtener el usuario
+      const user = await this.userService.findOneByEmail(email);
+      if (!user) {
+        throw new BadRequestException('Usuario no encontrado');
+      }
+
+      // Hashear la nueva contraseña
+      const hashedPassword = await this.hashService.hash(newPassword);
+
+      // Actualizar contraseña del usuario
+      await this.userService.updatePassword(user.id, hashedPassword);
+
+      // Eliminar OTP usado
+      await this.otpModel.deleteOne({ _id: otp._id });
+
+      return {
+        message: 'Contraseña actualizada exitosamente',
+      };
+    } catch (error) {
+      console.error('Error al resetear contraseña:', error);
+      if (error instanceof BadRequestException) throw error;
+      throw new InternalServerErrorException(
+        'Error al actualizar la contraseña',
+      );
+    }
   }
 }

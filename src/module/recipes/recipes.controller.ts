@@ -141,10 +141,22 @@ export class RecetasController {
   async create(
     @Body() createRecetaDto: CreateRecipeDto,
     @Request() req: any,
-  ): Promise<Recipe> {
+  ): Promise<{ message: string, recipe: Recipe }> {
     const userId = req.user?.sub;
     const newRecipe = await this.recipesService.create(createRecetaDto, userId);
-    return newRecipe;
+
+    if (newRecipe ) {
+      return  {
+        message: 'Recipe created successfully',
+        recipe: newRecipe,
+      };
+    }
+    else {
+      return {
+        message: 'Failed to create recipe',
+        recipe: null,
+      };
+    }
   }
 
   @Get('getRecipeFilter')

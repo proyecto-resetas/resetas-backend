@@ -10,6 +10,7 @@ import { GeminiProvider } from '../../module/ai/providers/gemini.provider';
 import { OpenAIProvider } from '../../module/ai/providers/openai.provider';
 import { OllamaProvider } from '../../module/ai/providers/ollama.provider';
 import { HttpService } from '@nestjs/axios';
+import { PROMPTS, PromptName } from './constants/prompts';
 
 @Injectable()
 export class AIService {
@@ -19,7 +20,6 @@ export class AIService {
   constructor(
     private readonly configService: ConfigService,
     private readonly httpService: HttpService,
-    // Aquí podrías inyectar directamente los proveedores si prefieres
   ) {
     this.initializeProviders();
   }
@@ -37,6 +37,25 @@ export class AIService {
       AIProvider.OLLAMA,
       new OllamaProvider(this.configService, this.httpService),
     );
+  }
+
+  /**
+   * Obtiene un prompt por su nombre o el definido por defecto en la variable de entorno RECIPE_PROMPT_NAME.
+   */
+  getPrompt(name?: string): string {
+    const aiConfig = this.configService.get('aiConfig');
+    const promptName = (name || aiConfig.recipePromptName) as PromptName;
+
+    const prompt = PROMPTS[promptName];
+
+    if (!prompt) {
+      this.logger.warn(
+        `Prompt "${promptName}" no encontrado. Usando RECIPE_ANALYSIS_OLLAMA por defecto.`,
+      );
+      return PROMPTS.RECIPE_ANALYSIS_OLLAMA;
+    }
+
+    return prompt;
   }
 
   async generateResponse(

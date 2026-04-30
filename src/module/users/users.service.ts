@@ -225,4 +225,10 @@ export class UserService {
       )
       .exec();
   }
+
+  async updatePassword(userId: string, hashedPassword: string): Promise<void> {
+    await this.userModel
+      .findByIdAndUpdate(userId, { password: hashedPassword })
+      .exec();
+  }
 }
