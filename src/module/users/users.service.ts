@@ -205,6 +205,50 @@ export class UserService {
     }
   }
 
+  // Agregar una receta a myPurchased
+  async addPurchasedRecipe(userId: string, recipeId: string): Promise<User> {
+    try {
+      const recipe = await this.recipeModel.findById(recipeId).exec();
+      if (!recipe) {
+        throw new NotFoundException(`Recipe with id ${recipeId} not found`);
+      }
+
+      const user = await this.userModel.findById(userId).exec();
+      if (!user) {
+        throw new HttpException(`User not found`, HttpStatus.NOT_FOUND);
+      }
+
+      const isAlreadyPurchased = user.myPurchased?.some(
+        (r) => r.idRecipe === recipeId,
+      );
+
+      if (isAlreadyPurchased) {
+        throw new HttpException(
+          `Recipe is already in purchased list`,
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      return await this.userModel
+        .findByIdAndUpdate(
+          userId,
+          {
+            $push: {
+              myPurchased: { idRecipe: recipeId, nameRecipe: recipe.nameRecipe },
+            },
+          },
+          { new: true },
+        )
+        .exec();
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      throw new HttpException(
+        `Failed to add recipe to purchased: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
   // Eliminar una receta de myFavorite
   async removeFavoriteRecipe(userId: string, recipeId: string): Promise<User> {
     return this.userModel
@@ -221,6 +265,16 @@ export class UserService {
       .findByIdAndUpdate(
         userId,
         { $pull: { myRecipe: { idRecipe: recipeId } } },
+        { new: true },
+      )
+      .exec();
+  }
+
+  async removePurchasedRecipe(userId: string, recipeId: string): Promise<User> {
+    return this.userModel
+      .findByIdAndUpdate(
+        userId,
+        { $pull: { myPurchased: { idRecipe: recipeId } } },
         { new: true },
       )
       .exec();

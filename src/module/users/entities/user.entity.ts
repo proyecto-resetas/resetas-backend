@@ -14,6 +14,7 @@ import { Document, Types } from 'mongoose';
 import { UserRole } from 'src/common/guard/roles.enum';
 import { MyFavorite } from './my-favorite.entity';
 import { MyRecipes } from './my-recipe.entity';
+import { MyPurchased } from './my-purchased.entity';
 
 @Schema({ timestamps: true })
 export class User extends Document {
@@ -70,6 +71,11 @@ export class User extends Document {
   @Prop({ type: [{ idRecipe: String, nameRecipe: String }] })
   @Type(() => MyRecipes)
   myRecipe?: MyRecipes[];
+
+  @IsArray()
+  @Prop({ type: [{ idRecipe: String, nameRecipe: String }] })
+  @Type(() => MyPurchased)
+  myPurchased?: MyPurchased[];
 
   // Relación con recetas creadas por el usuario
   @Prop({ type: [{ type: Types.ObjectId, ref: 'Recipe' }] })

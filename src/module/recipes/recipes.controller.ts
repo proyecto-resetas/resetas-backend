@@ -182,21 +182,22 @@ export class RecetasController {
     return this.recipesService.findIngredientsAndUtensils(id);
   }
 
-  @Get(':type/:userId')
+  @Get('my-list/:type')
   @Secure([UserRole.ADMIN, UserRole.USER], ['recipes:read'])
   @DocGetRecipesByType()
-  async findRecipes(
-    @Param('type') type: 'favorite' | 'myRecipes',
-    @Param('userId') userId: string,
+  async findMyRecipes(
+    @Param('type') type: 'favorite' | 'myRecipes' | 'purchased' | 'created',
+    @Request() req: any,
     @Query('page') page = 1,
     @Query('limit') limit = 10,
   ) {
-    if (!['favorite', 'myRecipes'].includes(type)) {
+    if (!['favorite', 'myRecipes', 'purchased', 'created'].includes(type)) {
       throw new BadRequestException(
-        'Invalid "type". It must be either "favorite" or "myRecipes".',
+        'Invalid "type". It must be "favorite", "myRecipes", "purchased" or "created".',
       );
     }
 
+    const userId = req.user.sub;
     return this.recipesService.findRecipesProperty(
       userId,
       { type },

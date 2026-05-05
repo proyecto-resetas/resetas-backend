@@ -72,6 +72,17 @@ export default class UsersController {
     return this.userService.addMyRecipe(userId, recipeId);
   }
 
+  // Agregar una receta a myPurchased
+  @Post('purchased-recipe/:recipeId')
+  @Secure([UserRole.ADMIN, UserRole.USER], ['users:create'])
+  async addPurchasedRecipe(
+    @Param('recipeId') recipeId: string,
+    @Request() req: any,
+  ) {
+    const userId = req.user.sub;
+    return this.userService.addPurchasedRecipe(userId, recipeId);
+  }
+
   // Eliminar una receta de myFavorite
   @Delete('favorite-recipe/:recipeId')
   @Secure([UserRole.ADMIN, UserRole.USER], ['users:delete'])
@@ -92,5 +103,16 @@ export default class UsersController {
   ) {
     const userId = req.user.sub;
     return this.userService.removeMyRecipe(userId, recipeId);
+  }
+
+  // Eliminar una receta de myPurchased
+  @Delete('purchased-recipe/:recipeId')
+  @Secure([UserRole.ADMIN, UserRole.USER], ['users:delete'])
+  async removePurchasedRecipe(
+    @Param('recipeId') recipeId: string,
+    @Request() req: any,
+  ) {
+    const userId = req.user.sub;
+    return this.userService.removePurchasedRecipe(userId, recipeId);
   }
 }

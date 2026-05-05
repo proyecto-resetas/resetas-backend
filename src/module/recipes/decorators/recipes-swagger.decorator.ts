@@ -200,25 +200,20 @@ export function DocGetRecipesFilter() {
 }
 
 /**
- * Decorador para documentar el endpoint de obtener recetas por tipo (favoritas o mis recetas)
+ * Decorador para documentar el endpoint de obtener recetas por tipo (favoritas, creadas o compradas)
  */
 export function DocGetRecipesByType() {
   return applyDecorators(
     ApiOperation({
-      summary: 'Obtener recetas por tipo',
+      summary: 'Obtener recetas por tipo para el usuario autenticado',
       description:
-        'Obtiene las recetas favoritas o las recetas creadas por un usuario específico. El tipo puede ser "favorite" o "myrecipe".',
+        'Obtiene las recetas favoritas, las creadas o las compradas por el usuario que realiza la petición (extraído del token). El tipo puede ser "favorite", "myRecipes", "purchased" o "created".',
     }),
     ApiParam({
       name: 'type',
       description: 'Tipo de recetas a obtener',
-      enum: ['favorite', 'myrecipe'],
+      enum: ['favorite', 'myRecipes', 'purchased', 'created'],
       example: 'favorite',
-    }),
-    ApiParam({
-      name: 'userId',
-      description: 'ID del usuario',
-      example: '507f1f77bcf86cd799439011',
     }),
     ApiQuery({
       name: 'page',
@@ -238,40 +233,37 @@ export function DocGetRecipesByType() {
       status: 200,
       description: 'Recetas encontradas exitosamente',
       schema: {
-        type: 'object',
-        properties: {
-          recipes: {
-            type: 'array',
-            items: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            _id: { type: 'string', example: '507f1f77bcf86cd799439011' },
+            nameRecipe: { type: 'string', example: 'Pasta Carbonara' },
+            descriptionRecipe: {
+              type: 'string',
+              example: 'Deliciosa pasta italiana',
+            },
+            imageUrl: {
+              type: 'string',
+              example: 'https://example.com/images/carbonara.jpg',
+            },
+            price: { type: 'number', example: 15.99 },
+            level: { type: 'string', example: 'Intermedio' },
+            category: { type: 'string', example: 'Italiana' },
+            createdBy: {
               type: 'object',
               properties: {
-                _id: { type: 'string', example: '507f1f77bcf86cd799439011' },
-                nameRecipe: { type: 'string', example: 'Pasta Carbonara' },
-                descriptionRecipe: {
-                  type: 'string',
-                  example: 'Deliciosa pasta italiana',
-                },
-                imageUrl: {
-                  type: 'string',
-                  example: 'https://example.com/images/carbonara.jpg',
-                },
-                price: { type: 'number', example: 15.99 },
-                level: { type: 'string', example: 'Intermedio' },
-                category: { type: 'string', example: 'Italiana' },
+                username: { type: 'string', example: 'Juan' },
+                lastname: { type: 'string', example: 'Pérez' },
               },
             },
-          },
-          total: {
-            type: 'number',
-            example: 5,
-            description: 'Total de recetas del tipo solicitado',
           },
         },
       },
     }),
     ApiResponse({
       status: 400,
-      description: 'Tipo inválido. Debe ser "favorite" o "myrecipe"',
+      description: 'Tipo inválido. Debe ser "favorite", "myRecipes", "purchased" o "created"',
     }),
     ApiResponse({
       status: 404,

@@ -170,7 +170,7 @@ export class RecipesService {
 
   async findRecipesProperty(
     userId: string,
-    query: { type: 'favorite' | 'myRecipes' },
+    query: { type: 'favorite' | 'myRecipes' | 'purchased' | 'created' },
     page: number,
     limit: number,
   ) {
@@ -182,37 +182,44 @@ export class RecipesService {
       throw new NotFoundException('User not found');
     }
 
-    // Determinar la propiedad a consultar
+    // Determinar la propiedad a consultar o el filtro
     let recipeIds: string[] = [];
+    let filters: any = {};
+
     if (type === 'favorite') {
       recipeIds = user.myFavorite.map((fav) => fav.idRecipe);
+      filters = { _id: { $in: recipeIds } };
     } else if (type === 'myRecipes') {
       recipeIds = user.myRecipe.map((recipe) => recipe.idRecipe);
+      filters = { _id: { $in: recipeIds } };
+    } else if (type === 'purchased') {
+      recipeIds = user.myPurchased?.map((recipe) => recipe.idRecipe) || [];
+      filters = { _id: { $in: recipeIds } };
+    } else if (type === 'created') {
+      filters = { createdBy: new Types.ObjectId(userId) };
     } else {
       throw new NotFoundException(
-        'Invalid query parameter. Allowed values are "favorite" or "myRecipes".',
+        'Invalid query parameter. Allowed values are "favorite", "myRecipes", "purchased" or "created".',
       );
     }
 
-    if (recipeIds.length === 0) {
-      return { recipes: [], total: 0 };
+    if (type !== 'created' && recipeIds.length === 0) {
+      return [];
     }
 
     // Aplicar paginación
     const skip = (page - 1) * limit;
 
     // Consultar las recetas según la propiedad seleccionada
-    const [recipes, total] = await Promise.all([
-      this.recipeModel
-        .find({ _id: { $in: recipeIds } })
-        .skip(skip)
-        .limit(limit)
-        .populate('steps')
-        .exec(),
-      this.recipeModel.countDocuments({ _id: { $in: recipeIds } }).exec(),
-    ]);
+    const recipes = await this.recipeModel
+      .find(filters)
+      .select('-steps -ingredientsRecipe -utensilRecipe')
+      .skip(skip)
+      .limit(limit)
+      .populate('createdBy', 'username lastname')
+      .exec();
 
-    return { recipes, total };
+    return recipes;
   }
 
   async findOneById(id: string) {
