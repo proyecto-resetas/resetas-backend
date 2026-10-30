@@ -5,8 +5,13 @@
   "author": "",
   "private": true,
   "license": "UNLICENSED",
+  "engines": {
+    "node": "22.x"
+  },
   "scripts": {
+    "heroku-prebuild": "node -e \"const fs=require('fs'),p=JSON.parse(fs.readFileSync('package.json','utf8'));if(p.scripts&&p.scripts['heroku-postbuild']&&p.scripts['heroku-postbuild'].includes('npm@latest')){p.scripts['heroku-postbuild']='echo Build already completed';fs.writeFileSync('package.json',JSON.stringify(p,null,2)+'\\n');}\"",
     "build": "nest build",
+    "postbuild": "node -e \"const fs=require('fs'),p=JSON.parse(fs.readFileSync('package.json','utf8'));if(p.scripts&&p.scripts['heroku-postbuild']&&p.scripts['heroku-postbuild'].includes('npm@latest')){p.scripts['heroku-postbuild']='echo Build already completed';fs.writeFileSync('package.json',JSON.stringify(p,null,2)+'\\n');}\"",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "node dist/main",
     "start:dev": "nest start --watch",
