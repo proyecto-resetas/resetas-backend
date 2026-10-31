@@ -78,13 +78,20 @@ export class BrevoService {
   async sendOtpEmail(
     email: string,
     code: string,
-    type: 'login' | 'password_recovery' = 'login',
+    type: 'login' | 'password_recovery' | 'register' = 'login',
   ): Promise<void> {
     const isRecovery = type === 'password_recovery';
-    const title = isRecovery ? 'Recuperación de Cuenta' : 'Código de Verificación';
+    const isRegister = type === 'register';
+    const title = isRecovery
+      ? 'Recuperación de Cuenta'
+      : isRegister
+        ? 'Confirmación de Registro'
+        : 'Código de Verificación';
     const message = isRecovery
       ? 'Has solicitado recuperar tu contraseña en <strong>Recetarium</strong>. Por favor, confirma que eres tú quien está intentando cambiar la contraseña usando el siguiente código:'
-      : 'Has solicitado un código de verificación para acceder a tu cuenta en <strong>Recetarium</strong>.';
+      : isRegister
+        ? 'Estás a un paso de crear tu cuenta en <strong>Recetarium</strong>. Usa el siguiente código para verificar tu correo y completar tu registro:'
+        : 'Has solicitado un código de verificación para acceder a tu cuenta en <strong>Recetarium</strong>.';
 
     const htmlContent = `
      <!DOCTYPE html>

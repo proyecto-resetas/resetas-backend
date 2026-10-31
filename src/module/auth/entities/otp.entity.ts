@@ -18,8 +18,14 @@ export class Otp extends Document {
   @Prop({ default: 0 })
   attempts: number;
 
-  @Prop({ enum: ['login', 'password_recovery'], default: 'login' })
+  @Prop({
+    enum: ['login', 'password_recovery', 'register'],
+    default: 'login',
+  })
   type: string;
+
+  @Prop({ type: Object, required: false })
+  pendingUserData?: Record<string, any>;
 }
 
 export const OtpSchema = SchemaFactory.createForClass(Otp);

@@ -46,20 +46,51 @@ export class AuthService {
       const hashedPassword = await this.hashService.hash(userRegister.password);
 
       if (userRegister.role === 'admin' || 'user') {
-        const user = await this.userService.create({
-          ...userRegister,
-          password: hashedPassword,
+        const code = Math.floor(100000 + Math.random() * 900000).toString();
+        const expiresAt = new Date();
+        expiresAt.setMinutes(expiresAt.getMinutes() + 10);
+
+        await this.otpModel.deleteMany({
+          email: userRegister.email,
+          verified: false,
         });
 
-        await this.generateOtp(user.email, userRegister.password);
+        const otpRecord = await this.otpModel.create({
+          email: userRegister.email,
+          code,
+          expiresAt,
+          verified: false,
+          attempts: 0,
+          type: 'register',
+          pendingUserData: {
+            ...userRegister,
+            password: hashedPassword,
+          },
+        });
+
+        try {
+          await this.brevoService.sendOtpEmail(
+            userRegister.email,
+            code,
+            'register',
+          );
+        } catch (emailError) {
+          await this.otpModel.deleteOne({ _id: otpRecord._id });
+          throw emailError;
+        }
+
         return {
-          message: 'User registered successfully',
-          email: user.email,
-          role: user.role,
+          message:
+            'Código OTP enviado exitosamente al email. Verifica el código para completar el registro.',
+          email: userRegister.email,
+          role: userRegister.role,
         };
       }
     } catch (error) {
       console.error('Error during user registration:', error);
+      if (error instanceof HttpException) {
+        throw error;
+      }
       throw new InternalServerErrorException(
         'Something went wrong during registration',
       );
@@ -241,7 +272,42 @@ export class AuthService {
         );
       }
 
-      // Obtener el usuario
+      // Si el OTP es para registro de un nuevo usuario, creamos el usuario ahora
+      if (otp.type === 'register' && otp.pendingUserData) {
+        const createdUser = await this.userService.create(
+          otp.pendingUserData as any,
+        );
+
+        otp.verified = true;
+        otp.pendingUserData = undefined;
+        await otp.save();
+
+        const permissions = await this.roleService.getPermissionsByRoleName(
+          createdUser.role,
+        );
+
+        const tokens = await this.getTokens(
+          {
+            sub: createdUser.id,
+            username: createdUser.username,
+            role: createdUser.role,
+          },
+          createdUser.id,
+        );
+
+        return {
+          message:
+            'Código OTP verificado exitosamente. Registro y login completados',
+          userId: createdUser.id,
+          email: createdUser.email,
+          username: createdUser.username,
+          role: createdUser.role,
+          permissions,
+          ...tokens,
+        };
+      }
+
+      // Obtener el usuario existente (login o recuperación de contraseña)
       const user = await this.userService.findOneByEmail(email);
       if (!user) {
         throw new BadRequestException('Usuario no encontrado');
