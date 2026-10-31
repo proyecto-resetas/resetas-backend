@@ -14,6 +14,7 @@ import { UserService } from '../users/users.service';
 import { StepsService } from '../steps/steps.service';
 import { OllamaService } from '../ollama/ollama.service';
 import { AIService, AIProvider } from '../ai';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class RecipesService {
@@ -23,6 +24,7 @@ export class RecipesService {
     private readonly userService: UserService,
     private readonly ollamaService: OllamaService,
     private readonly aiService: AIService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   /**
@@ -253,10 +255,84 @@ export class RecipesService {
     purchaseDto?: PurchaseRecipeDto,
   ) {
     const recipe = await this.findOneById(recipeId);
+    const buyer = await this.userService.findOneById(userId);
+    const buyerUsername = buyer?.username || 'Un usuario';
 
-    await this.userService.addPurchasedRecipe(userId, recipeId, {
+    // Si es un regalo para otro usuario por email, desbloquear al destinatario
+    let targetUserId = userId;
+    if (purchaseDto?.recipientEmail?.trim()) {
+      try {
+        const recipientUser = await this.userService.findOneByEmail(
+          purchaseDto.recipientEmail.trim(),
+        );
+        if (recipientUser && recipientUser._id) {
+          targetUserId = String(recipientUser._id);
+        }
+      } catch {
+        // Si el correo no existe, se asigna al comprador
+      }
+    }
+
+    await this.userService.addPurchasedRecipe(targetUserId, recipeId, {
       paymentReference: purchaseDto?.paymentReference,
     });
+
+    const recipeImg = Array.isArray(recipe.imageUrl)
+      ? recipe.imageUrl[0]
+      : (recipe.imageUrl as unknown as string);
+
+    // 1. Si fue regalo para otro usuario, notificar al destinatario en tiempo real + Push
+    if (targetUserId !== userId) {
+      await this.notificationsService.createAndEmit({
+        recipientId: targetUserId,
+        senderId: userId,
+        senderUsername: buyerUsername,
+        type: 'recipe_gift',
+        title: '¡Te regalaron una receta!',
+        message: `@${buyerUsername} te envió "${recipe.nameRecipe}". ¡El paso a paso ya está desbloqueado!`,
+        recipeId: String(recipe._id),
+        recipeName: recipe.nameRecipe,
+        recipeImage: recipeImg,
+        amount: recipe.price,
+      });
+    }
+
+    // 2. Notificar confirmación de compra al comprador
+    await this.notificationsService.createAndEmit({
+      recipientId: userId,
+      senderId: userId,
+      senderUsername: buyerUsername,
+      type: 'purchase_confirmed',
+      title: 'Compra exitosa',
+      message:
+        targetUserId !== userId
+          ? `Enviaste "${recipe.nameRecipe}" como regalo exitosamente.`
+          : `Desbloqueaste "${recipe.nameRecipe}" en tus recetas compradas.`,
+      recipeId: String(recipe._id),
+      recipeName: recipe.nameRecipe,
+      recipeImage: recipeImg,
+      amount: recipe.price,
+    });
+
+    // 3. Notificar al autor/chef de la receta que vendió su receta
+    const creatorId = recipe.createdBy
+      ? String((recipe.createdBy as any)._id || recipe.createdBy)
+      : null;
+
+    if (creatorId && creatorId !== userId) {
+      await this.notificationsService.createAndEmit({
+        recipientId: creatorId,
+        senderId: userId,
+        senderUsername: buyerUsername,
+        type: 'recipe_sold',
+        title: '¡Vendiste una receta!',
+        message: `@${buyerUsername} compró tu receta "${recipe.nameRecipe}" por $${recipe.price}`,
+        recipeId: String(recipe._id),
+        recipeName: recipe.nameRecipe,
+        recipeImage: recipeImg,
+        amount: recipe.price,
+      });
+    }
 
     return {
       message: 'Recipe purchased and added to your purchased list successfully',

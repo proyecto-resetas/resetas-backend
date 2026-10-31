@@ -11,12 +11,14 @@ import { Model } from 'mongoose';
 import { MyFavorite } from './entities/my-favorite.entity';
 import { MyRecipes } from './entities/my-recipe.entity';
 import { Recipe } from '../recipes/entities/recipes.entity';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class UserService {
   constructor(
     @InjectModel(User.name) private userModel: Model<User>,
     @InjectModel(Recipe.name) private recipeModel: Model<Recipe>,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async create(createUserDto: CreateUserDto) {
@@ -138,7 +140,7 @@ export class UserService {
       }
 
       // 3. Añadirlo
-      return await this.userModel
+      const updatedUser = await this.userModel
         .findByIdAndUpdate(
           userId,
           {
@@ -149,6 +151,29 @@ export class UserService {
           { new: true },
         )
         .exec();
+
+      // 4. Emitir notificación en tiempo real + Push al creador de la receta
+      const creatorId = recipe.createdBy
+        ? String((recipe.createdBy as any)._id || recipe.createdBy)
+        : null;
+      if (creatorId && creatorId !== String(userId)) {
+        const recipeImg = Array.isArray(recipe.imageUrl)
+          ? recipe.imageUrl[0]
+          : (recipe.imageUrl as unknown as string);
+        await this.notificationsService.createAndEmit({
+          recipientId: creatorId,
+          senderId: String(userId),
+          senderUsername: user.username,
+          type: 'recipe_favorited',
+          title: 'Tu receta recibió un favorito',
+          message: `@${user.username} guardó "${recipe.nameRecipe}" en sus favoritos.`,
+          recipeId: String(recipe._id),
+          recipeName: recipe.nameRecipe,
+          recipeImage: recipeImg,
+        });
+      }
+
+      return updatedUser;
     } catch (error) {
       if (error instanceof HttpException) throw error;
       throw new HttpException(

@@ -89,6 +89,12 @@ export class User extends Document {
   // Relación con recetas creadas por el usuario
   @Prop({ type: [{ type: Types.ObjectId, ref: 'Recipe' }] })
   recipesCreated?: Types.ObjectId[]; // Lista de recetas creadas por el usuario
+
+  // Tokens de dispositivos para Notificaciones Push (FCM / Web Push)
+  @IsOptional()
+  @IsArray()
+  @Prop({ type: [String], default: [] })
+  fcmTokens?: string[];
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

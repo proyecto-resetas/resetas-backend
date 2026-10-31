@@ -13,6 +13,7 @@ import { ApiKeyModule } from './common/utils/apikey/apikey.module';
 //import { APP_GUARD } from '@nestjs/core';
 //import { ApiKeyGuard } from './common/guard/x-api-key/x-api-key.guard';
 import { OllamaModule } from './module/ollama/ollama.module';
+import { NotificationsModule } from './module/notifications/notifications.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { OllamaModule } from './module/ollama/ollama.module';
     S3Module,
     ApiKeyModule,
     OllamaModule,
+    NotificationsModule,
   ],
   controllers: [],
   // providers: [
