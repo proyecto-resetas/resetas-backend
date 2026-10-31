@@ -206,7 +206,11 @@ export class UserService {
   }
 
   // Agregar una receta a myPurchased
-  async addPurchasedRecipe(userId: string, recipeId: string): Promise<User> {
+  async addPurchasedRecipe(
+    userId: string,
+    recipeId: string,
+    options?: { paymentReference?: string },
+  ): Promise<User> {
     try {
       const recipe = await this.recipeModel.findById(recipeId).exec();
       if (!recipe) {
@@ -229,12 +233,22 @@ export class UserService {
         );
       }
 
+      const purchasedItem: Record<string, any> = {
+        idRecipe: recipeId,
+        nameRecipe: recipe.nameRecipe,
+        purchasedAt: new Date(),
+      };
+
+      if (options?.paymentReference) {
+        purchasedItem.paymentReference = options.paymentReference;
+      }
+
       return await this.userModel
         .findByIdAndUpdate(
           userId,
           {
             $push: {
-              myPurchased: { idRecipe: recipeId, nameRecipe: recipe.nameRecipe },
+              myPurchased: purchasedItem,
             },
           },
           { new: true },

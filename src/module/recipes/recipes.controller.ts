@@ -19,6 +19,7 @@ import { AIProvider } from '../ai';
 import { CreateRecipeDto } from './dto/create-recipe.dto';
 import { UpdateRecipeDto } from './dto/update-receta.dto';
 import { GetRecipesQueryDto } from './dto/get-recipe-query.dto';
+import { PurchaseRecipeDto } from './dto/purchase-recipe.dto';
 import { Secure } from 'src/common/decorators/secure.decorator';
 import { UserRole } from 'src/common/guard/roles.enum';
 import { Recipe } from './entities/recipes.entity';
@@ -31,6 +32,7 @@ import {
   DocUpdateRecipe,
   DocDeleteRecipe,
   DocGetIngredientsAndUtensils,
+  DocPurchaseRecipe,
 } from './decorators/recipes-swagger.decorator';
 
 @ApiTags('recetas')
@@ -204,6 +206,18 @@ export class RecetasController {
       page,
       limit,
     );
+  }
+
+  @Post('purchase/:id')
+  @Secure([UserRole.ADMIN, UserRole.USER], ['recipes:read'])
+  @DocPurchaseRecipe()
+  async purchaseRecipe(
+    @Param('id') id: string,
+    @Request() req: any,
+    @Body() purchaseDto?: PurchaseRecipeDto,
+  ) {
+    const userId = req.user.sub;
+    return this.recipesService.purchaseRecipe(userId, id, purchaseDto);
   }
 
   @Get(':id')

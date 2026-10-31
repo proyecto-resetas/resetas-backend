@@ -6,7 +6,11 @@ import {
   ApiQuery,
   ApiResponse,
 } from '@nestjs/swagger';
-import { CreateRecipeDto, UpdateRecipeDto } from '../dto';
+import {
+  CreateRecipeDto,
+  UpdateRecipeDto,
+  PurchaseRecipeDto,
+} from '../dto';
 
 /**
  * Decorador para documentar el endpoint de creación de receta
@@ -586,6 +590,37 @@ export function DocGetIngredientsAndUtensils() {
     ApiResponse({
       status: 500,
       description: 'Error interno del servidor',
+    }),
+  );
+}
+
+/**
+ * Decorador para documentar el endpoint de compra/adquisición de una receta
+ */
+export function DocPurchaseRecipe() {
+  return applyDecorators(
+    ApiOperation({
+      summary: 'Comprar y obtener una receta para el usuario autenticado',
+      description:
+        'Obtiene la receta por su ID, la almacena en la lista de recetas compradas (myPurchased) del usuario autenticado y retorna el detalle completo de la receta incluyendo sus pasos.',
+    }),
+    ApiParam({
+      name: 'id',
+      description: 'ID de la receta a comprar',
+      example: '507f1f77bcf86cd799439011',
+    }),
+    ApiBody({ type: PurchaseRecipeDto, required: false }),
+    ApiResponse({
+      status: 201,
+      description: 'Receta comprada y almacenada exitosamente',
+    }),
+    ApiResponse({
+      status: 400,
+      description: 'La receta ya se encuentra en la lista de compradas',
+    }),
+    ApiResponse({
+      status: 404,
+      description: 'Receta o usuario no encontrado',
     }),
   );
 }

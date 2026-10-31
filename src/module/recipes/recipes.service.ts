@@ -5,6 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { CreateRecipeDto } from './dto/create-recipe.dto';
+import { PurchaseRecipeDto } from './dto/purchase-recipe.dto';
 import { InjectModel } from '@nestjs/mongoose';
 import { Recipe } from './entities/recipes.entity';
 import { Model, Types } from 'mongoose';
@@ -233,11 +234,35 @@ export class RecipesService {
       }
       return recipe;
     } catch (error) {
+      if (error instanceof HttpException) throw error;
       throw new HttpException(
         `Error fetching recipe`,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
+  }
+
+  /**
+   * Obtiene una receta por su ID, la almacena en la lista de recetas compradas (myPurchased)
+   * del usuario autenticado y retorna la receta completa con sus pasos.
+   * Preparado para escalar con pasarela de pagos y envío de regalo por email en el futuro.
+   */
+  async purchaseRecipe(
+    userId: string,
+    recipeId: string,
+    purchaseDto?: PurchaseRecipeDto,
+  ) {
+    const recipe = await this.findOneById(recipeId);
+
+    await this.userService.addPurchasedRecipe(userId, recipeId, {
+      paymentReference: purchaseDto?.paymentReference,
+    });
+
+    return {
+      message: 'Recipe purchased and added to your purchased list successfully',
+      success: true,
+      recipe,
+    };
   }
 
   async findIngredientsAndUtensils(id: string) {

@@ -78,9 +78,12 @@ export default class UsersController {
   async addPurchasedRecipe(
     @Param('recipeId') recipeId: string,
     @Request() req: any,
+    @Body() body?: { paymentReference?: string },
   ) {
     const userId = req.user.sub;
-    return this.userService.addPurchasedRecipe(userId, recipeId);
+    return this.userService.addPurchasedRecipe(userId, recipeId, {
+      paymentReference: body?.paymentReference,
+    });
   }
 
   // Eliminar una receta de myFavorite

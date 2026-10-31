@@ -73,7 +73,16 @@ export class User extends Document {
   myRecipe?: MyRecipes[];
 
   @IsArray()
-  @Prop({ type: [{ idRecipe: String, nameRecipe: String }] })
+  @Prop({
+    type: [
+      {
+        idRecipe: String,
+        nameRecipe: String,
+        purchasedAt: { type: Date, default: Date.now },
+        paymentReference: String,
+      },
+    ],
+  })
   @Type(() => MyPurchased)
   myPurchased?: MyPurchased[];
 

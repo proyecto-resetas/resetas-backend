@@ -60,25 +60,28 @@ export class StepsService {
     recipeId: string,
     userId: string,
   ): Promise<Step[]> {
-    // 1. Buscar al usuario y verificar si tiene la receta en sus 'myRecipes'
-    const user = await this.userService.findOneById(userId);
-    const hasRecipe = user.myRecipe?.some((r) => r.idRecipe === recipeId);
-
-    if (!hasRecipe) {
-      throw new HttpException(
-        'No tienes permiso para ver los pasos de esta receta. Esta receta no está en tu lista de "Mis Recetas".',
-        HttpStatus.FORBIDDEN,
-      );
-    }
-
-    // 2. Si la tiene, buscar la receta y devolver sus pasos poblados
-    const recipe = await this.recipeModel
-      .findById(recipeId)
-      .populate('steps')
-      .exec();
+    // 1. Buscar al usuario y la receta
+    const [user, recipe] = await Promise.all([
+      this.userService.findOneById(userId),
+      this.recipeModel.findById(recipeId).populate('steps').exec(),
+    ]);
 
     if (!recipe) {
       throw new NotFoundException(`La receta con id ${recipeId} no existe`);
+    }
+
+    // 2. Verificar si el usuario tiene la receta en 'myPurchased', en 'myRecipe' o si es el creador
+    const isInMyPurchased = user.myPurchased?.some(
+      (r) => r.idRecipe === recipeId,
+    );
+    const isInMyRecipes = user.myRecipe?.some((r) => r.idRecipe === recipeId);
+    const isCreator = recipe.createdBy?.toString() === userId;
+
+    if (!isInMyPurchased && !isInMyRecipes && !isCreator) {
+      throw new HttpException(
+        'No tienes permiso para ver los pasos de esta receta. Debes comprarla o tenerla en tu lista primero.',
+        HttpStatus.FORBIDDEN,
+      );
     }
 
     return recipe.steps as unknown as Step[];
