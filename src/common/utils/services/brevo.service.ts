@@ -11,7 +11,8 @@ interface SendEmailParams {
 
 @Injectable()
 export class BrevoService {
-  private readonly apiUrl = process.env.BREVO_API_URL;
+  private readonly apiUrl =
+    process.env.BREVO_API_URL || 'https://api.brevo.com/v3/smtp/email';
   private readonly apiKey: string;
 
   constructor() {
