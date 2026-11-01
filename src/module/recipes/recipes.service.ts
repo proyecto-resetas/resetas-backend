@@ -406,7 +406,27 @@ export class RecipesService {
   //   }
   // }
 
-  remove(id: number) {
-    return `This action removes a #${id} receta`;
+  async remove(id: string) {
+    const recipe = await this.recipeModel.findById(id).exec();
+    if (!recipe) {
+      throw new NotFoundException(`Recipe with id ${id} not found`);
+    }
+
+    // 1. Eliminar los pasos asociados en la colección Step
+    if (recipe.steps && recipe.steps.length > 0) {
+      await this.stepService.removeManyByIds(recipe.steps);
+    }
+
+    // 2. Limpiar referencias en myFavorite y myRecipe de los usuarios
+    await this.userService.cleanupDeletedRecipeReferences(id);
+
+    // 3. Eliminar la receta de MongoDB
+    await this.recipeModel.findByIdAndDelete(id).exec();
+
+    return {
+      message: 'Recipe deleted successfully',
+      success: true,
+      id,
+    };
   }
 }

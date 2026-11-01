@@ -25,6 +25,27 @@ import { Secure } from 'src/common/decorators/secure.decorator';
 export default class UsersController {
   constructor(private readonly userService: UserService) {}
 
+  @Get('admin/dashboard-stats')
+  @Secure([UserRole.SUPER_ADMIN])
+  async getAdminDashboardStats() {
+    return this.userService.getAdminDashboardStats();
+  }
+
+  @Get()
+  @Secure([UserRole.SUPER_ADMIN], ['users:read'])
+  async findAllUsers() {
+    return this.userService.findAllUsers();
+  }
+
+  @Patch(':id/role')
+  @Secure([UserRole.SUPER_ADMIN], ['users:update'])
+  async updateUserRole(
+    @Param('id') id: string,
+    @Body('role') role: string,
+  ) {
+    return this.userService.updateUserRole(id, role);
+  }
+
   @Secure([UserRole.ADMIN, UserRole.USER], ['users:read'])
   @Post(':email')
   @DocGetUserByEmail()
@@ -47,7 +68,7 @@ export default class UsersController {
   }
 
   @Delete(':id')
-  @Secure([UserRole.ADMIN, UserRole.USER], ['users:delete'])
+  @Secure([UserRole.SUPER_ADMIN], ['users:delete'])
   @DocDeleteUser()
   remove(@Param('id') id: string) {
     return this.userService.remove(id);

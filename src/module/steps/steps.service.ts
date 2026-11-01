@@ -70,14 +70,15 @@ export class StepsService {
       throw new NotFoundException(`La receta con id ${recipeId} no existe`);
     }
 
-    // 2. Verificar si el usuario tiene la receta en 'myPurchased', en 'myRecipe' o si es el creador
+    // 2. Verificar si el usuario tiene la receta en 'myPurchased', en 'myRecipe', es el creador o es super_admin
     const isInMyPurchased = user.myPurchased?.some(
       (r) => r.idRecipe === recipeId,
     );
     const isInMyRecipes = user.myRecipe?.some((r) => r.idRecipe === recipeId);
     const isCreator = recipe.createdBy?.toString() === userId;
+    const isSuperAdmin = user.role === 'super_admin';
 
-    if (!isInMyPurchased && !isInMyRecipes && !isCreator) {
+    if (!isInMyPurchased && !isInMyRecipes && !isCreator && !isSuperAdmin) {
       throw new HttpException(
         'No tienes permiso para ver los pasos de esta receta. Debes comprarla o tenerla en tu lista primero.',
         HttpStatus.FORBIDDEN,
@@ -85,6 +86,11 @@ export class StepsService {
     }
 
     return recipe.steps as unknown as Step[];
+  }
+
+  async removeManyByIds(ids: any[]) {
+    if (!ids || ids.length === 0) return;
+    await this.stepModel.deleteMany({ _id: { $in: ids } }).exec();
   }
 
   async remove(id: string) {

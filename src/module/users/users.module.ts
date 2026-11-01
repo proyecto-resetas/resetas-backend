@@ -5,12 +5,17 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { User, UserSchema } from './entities/user.entity';
 import { RolesModule } from '../roles/roles.module';
 import { Recipe, RecipeSchema } from '../recipes/entities/recipes.entity';
+import {
+  Notification,
+  NotificationSchema,
+} from '../notifications/entities/notification.entity';
 
 @Module({
   imports: [
     MongooseModule.forFeature([
       { name: User.name, schema: UserSchema },
       { name: Recipe.name, schema: RecipeSchema },
+      { name: Notification.name, schema: NotificationSchema },
     ]),
     RolesModule,
   ],

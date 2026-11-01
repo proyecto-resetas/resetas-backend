@@ -235,9 +235,9 @@ export class RecetasController {
   }
 
   @Delete(':id')
-  @Secure([UserRole.ADMIN], ['recipes:delete'])
+  @Secure([UserRole.SUPER_ADMIN], ['recipes:delete'])
   @DocDeleteRecipe()
   remove(@Param('id') id: string) {
-    return this.recipesService.remove(+id);
+    return this.recipesService.remove(id);
   }
 }

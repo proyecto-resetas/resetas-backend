@@ -75,11 +75,47 @@ export class RoleService {
   }
 
   /**
-   * Obtiene todos los roles (activos e inactivos)
+   * Obtiene todos los roles (activos e inactivos). Si la colección está vacía, inicializa los 3 roles base.
    */
   async findAll(includeInactive = false): Promise<Role[]> {
+    const count = await this.roleModel.countDocuments().exec();
+    if (count === 0) {
+      await this.seedDefaultRoles();
+    }
     const filter = includeInactive ? {} : { isActive: true };
     return await this.roleModel.find(filter).sort({ name: 1 }).exec();
+  }
+
+  private async seedDefaultRoles(): Promise<void> {
+    const defaults = [
+      {
+        name: 'user',
+        displayName: 'Usuario (Comprador)',
+        description: 'Explora, guarda favoritos y compra recetas paso a paso.',
+        permissions: this.getDefaultPermissions('user'),
+        isActive: true,
+      },
+      {
+        name: 'admin',
+        displayName: 'Chef (Creador)',
+        description: 'Crea, publica y gestiona sus propias recetas en Recetarium.',
+        permissions: this.getDefaultPermissions('admin'),
+        isActive: true,
+      },
+      {
+        name: 'super_admin',
+        displayName: 'Super Administrador',
+        description: 'Control total de usuarios, recetas, roles, permisos y ventas.',
+        permissions: this.getDefaultPermissions('super_admin'),
+        isActive: true,
+      },
+    ];
+
+    for (const r of defaults) {
+      await this.roleModel
+        .findOneAndUpdate({ name: r.name }, r, { upsert: true, new: true })
+        .exec();
+    }
   }
 
   /**
