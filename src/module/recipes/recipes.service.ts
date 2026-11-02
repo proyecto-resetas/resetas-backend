@@ -46,6 +46,23 @@ export class RecipesService {
   }
 
   /**
+   * Analiza y organiza un texto libre de receta usando IA para obtener un objeto JSON estructurado.
+   */
+  async analyzeRecipeText(
+    text: string,
+    provider?: AIProvider,
+  ): Promise<any> {
+    const basePrompt = this.aiService.getPrompt('RECIPE_TEXT_ANALYSIS');
+    const fullPrompt = `${basePrompt}\n\n<recipe_text>\n${text}\n</recipe_text>`;
+
+    const response = await this.aiService.generateResponse(fullPrompt, {
+      provider,
+    });
+
+    return this.aiService.parseJSONResponse(response.text);
+  }
+
+  /**
    * Analiza una imagen de receta y la guarda automáticamente en la base de datos.
    */
   async analyzeAndCreateRecipe(

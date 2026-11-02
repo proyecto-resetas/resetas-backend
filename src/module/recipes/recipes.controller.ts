@@ -89,6 +89,46 @@ export class RecetasController {
   }
 
   /**
+   * Recibe un texto libre con una receta o notas culinarias y usa IA para estructurarla en JSON.
+   */
+  @Post('analyze-text')
+  @Secure([UserRole.ADMIN], ['recipes:create'])
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['text'],
+      properties: {
+        text: {
+          type: 'string',
+          example: 'Pasta carbonara: hervir 200g de espaguetis por 10m en una olla...',
+          description: 'Texto libre de la receta para organizar con IA',
+        },
+        provider: {
+          type: 'string',
+          enum: Object.values(AIProvider),
+          description: 'Proveedor de IA a usar',
+          default: AIProvider.GEMINI,
+        },
+      },
+    },
+  })
+  async analyzeText(
+    @Body('text') text: string,
+    @Body('provider') provider?: AIProvider,
+  ): Promise<{ response: any }> {
+    if (!text || !text.trim()) {
+      throw new BadRequestException(
+        'Se requiere el texto de la receta en el campo "text"',
+      );
+    }
+    const response = await this.recipesService.analyzeRecipeText(
+      text.trim(),
+      provider,
+    );
+    return { response };
+  }
+
+  /**
    * Analiza una imagen de receta y la guarda automáticamente en la base de datos.
    */
   @Secure([UserRole.ADMIN], ['recipes:create'])
