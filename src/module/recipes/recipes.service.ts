@@ -1,4 +1,5 @@
 import {
+  ForbiddenException,
   HttpException,
   HttpStatus,
   Injectable,
@@ -6,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { CreateRecipeDto } from './dto/create-recipe.dto';
 import { PurchaseRecipeDto } from './dto/purchase-recipe.dto';
+import { SearchByIngredientsDto } from './dto/search-by-ingredients.dto';
 import { InjectModel } from '@nestjs/mongoose';
 import { Recipe } from './entities/recipes.entity';
 import { Model, Types } from 'mongoose';
@@ -136,7 +138,27 @@ export class RecipesService {
     const filters: any = {};
 
     if (name) {
-      filters.nameRecipe = { $regex: name, $options: 'i' };
+      const rawTerms = name
+        .split(',')
+        .map((t) => normalizeCulinaryText(t))
+        .filter(Boolean);
+
+      const patterns = rawTerms.flatMap((term) =>
+        getWordVariants(term).map((v) => buildAccentInsensitiveRegexPattern(v)),
+      );
+
+      if (patterns.length > 0) {
+        const combinedRegex = patterns.join('|');
+        filters.$or = [
+          { nameRecipe: { $regex: combinedRegex, $options: 'i' } },
+          {
+            'ingredientsRecipe.description': {
+              $regex: combinedRegex,
+              $options: 'i',
+            },
+          },
+        ];
+      }
     }
     if (category) filters.category = category;
     if (createdBy) filters.createdBy = createdBy;
@@ -251,6 +273,54 @@ export class RecipesService {
       if (!recipe) {
         throw new HttpException(`Recipe not found`, HttpStatus.NOT_FOUND);
       }
+      return recipe;
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      throw new HttpException(
+        `Error fetching recipe`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async findOneByIdForUser(id: string, userId?: string, userRole?: string) {
+    try {
+      const recipe = await this.recipeModel
+        .findById(id)
+        .populate('createdBy', 'username lastname')
+        .populate('steps')
+        .exec();
+      if (!recipe) {
+        throw new HttpException(`Recipe not found`, HttpStatus.NOT_FOUND);
+      }
+
+      const isFreeRecipe = Number(recipe.price ?? 0) <= 0;
+      const creatorId = String(
+        (recipe.createdBy as any)?._id || recipe.createdBy || '',
+      );
+      const isCreator = Boolean(userId) && creatorId === String(userId);
+      const isSuperAdmin = userRole === 'super_admin';
+
+      let isPurchased = false;
+      if (userId && !isFreeRecipe && !isCreator && !isSuperAdmin) {
+        try {
+          const user = await this.userService.findOneById(userId);
+          isPurchased = Boolean(
+            user?.myPurchased?.some(
+              (r) => String(r.idRecipe) === String(id),
+            ),
+          );
+        } catch {
+          isPurchased = false;
+        }
+      }
+
+      if (!isFreeRecipe && !isCreator && !isSuperAdmin && !isPurchased) {
+        const recipeObj = recipe.toObject();
+        recipeObj.steps = [];
+        return recipeObj;
+      }
+
       return recipe;
     } catch (error) {
       if (error instanceof HttpException) throw error;
@@ -379,14 +449,52 @@ export class RecipesService {
     }
   }
 
-  async update(id: string, updateRecipeDto) {
+  async update(
+    id: string,
+    updateRecipeDto,
+    userId?: string,
+    userRole?: string,
+  ) {
     try {
       const recipe = await this.recipeModel.findById(id).exec();
       if (!recipe) {
         throw new HttpException(`Recipe not found`, HttpStatus.NOT_FOUND);
       }
+
+      const creatorId = String(
+        (recipe.createdBy as any)?._id || recipe.createdBy || '',
+      );
+      if (
+        userRole !== 'super_admin' &&
+        (!userId || creatorId !== String(userId))
+      ) {
+        throw new ForbiddenException(
+          'No tienes permiso para editar una receta de otro chef.',
+        );
+      }
+
+      const updatePayload: Record<string, any> = { ...updateRecipeDto };
+      delete updatePayload._id;
+      delete updatePayload.createdBy;
+
+      if (Array.isArray(updateRecipeDto?.steps)) {
+        if (recipe.steps && recipe.steps.length > 0) {
+          await this.stepService.removeManyByIds(recipe.steps);
+        }
+        const cleanSteps = updateRecipeDto.steps.map((s: any) => ({
+          description: s.description,
+          time: s.time,
+          timeScreen: s.timeScreen,
+        }));
+        const savedSteps =
+          await this.stepService.createMultipleSteps(cleanSteps);
+        updatePayload.steps = savedSteps.map(
+          (s) => (s as unknown as { _id: Types.ObjectId })._id,
+        );
+      }
+
       const updatedRecipe = await this.recipeModel
-        .findByIdAndUpdate(id, updateRecipeDto, { new: true })
+        .findByIdAndUpdate(id, updatePayload, { new: true })
         .populate('steps')
         .exec();
 
@@ -395,6 +503,7 @@ export class RecipesService {
       }
       return updatedRecipe;
     } catch (error) {
+      if (error instanceof HttpException) throw error;
       throw new HttpException(
         `Error fetching recipe`,
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -446,4 +555,278 @@ export class RecipesService {
       id,
     };
   }
+
+  /**
+   * Busca y clasifica recetas según una lista de ingredientes proporcionados por el usuario.
+   * Calcula porcentaje de coincidencia, ingredientes presentes e ingredientes faltantes.
+   */
+  async searchByIngredients(dto: SearchByIngredientsDto) {
+    try {
+      const userIngredientsClean = (dto.ingredients || [])
+        .map((i) => normalizeCulinaryText(i))
+        .filter((i) => i.length > 0);
+
+      if (userIngredientsClean.length === 0) {
+        return { recipes: [], total: 0, page: 1, totalPages: 0 };
+      }
+
+      const userTermsWithVariants = userIngredientsClean.map((term) => ({
+        original: term,
+        variants: getWordVariants(term),
+      }));
+
+      // Extraer todas las variantes para el filtro inicial en MongoDB
+      const allVariantPatterns = userTermsWithVariants.flatMap(
+        (t) => t.variants,
+      );
+      const escapedPatterns = allVariantPatterns.map((p) =>
+        buildAccentInsensitiveRegexPattern(p),
+      );
+
+      const queryConditions: any = {
+        $or: escapedPatterns.map((pat) => ({
+          'ingredientsRecipe.description': { $regex: pat, $options: 'i' },
+        })),
+      };
+
+      if (dto.category) {
+        queryConditions.category = dto.category;
+      }
+      if (dto.level) {
+        queryConditions.level = dto.level;
+      }
+
+      // Buscar candidatos en MongoDB
+      const candidateRecipes = await this.recipeModel
+        .find(queryConditions)
+        .populate('createdBy', 'username lastname')
+        .exec();
+
+      if (!candidateRecipes || candidateRecipes.length === 0) {
+        return { recipes: [], total: 0, page: 1, totalPages: 0 };
+      }
+
+      const scoredRecipes = candidateRecipes
+        .map((recipe) => {
+          const recipeIngredients = recipe.ingredientsRecipe || [];
+          if (recipeIngredients.length === 0) return null;
+
+          const matched: any[] = [];
+          const missing: any[] = [];
+          let stapleMissingCount = 0;
+          const matchedUserTagsSet = new Set<string>();
+
+          for (const ing of recipeIngredients) {
+            const descNormalized = normalizeCulinaryText(ing.description);
+
+            // Verificar si este ingrediente de la receta coincide con algún término del usuario
+            let isMatched = false;
+            for (const item of userTermsWithVariants) {
+              const matchedItem = item.variants.some((variant) => {
+                const escapedVariant = variant.replace(
+                  /[.*+?^${}()|[\]\\]/g,
+                  '\\$&',
+                );
+                const regex = new RegExp(
+                  `(^|\\s|[.,;])${escapedVariant}($|\\s|[.,;])`,
+                  'i',
+                );
+                return (
+                  regex.test(descNormalized) ||
+                  descNormalized.includes(variant)
+                );
+              });
+              if (matchedItem) {
+                isMatched = true;
+                matchedUserTagsSet.add(item.original);
+              }
+            }
+
+            const isStaple = isStapleIngredient(descNormalized);
+
+            if (isMatched) {
+              matched.push({
+                description: ing.description,
+                amount: ing.amount,
+                isStaple,
+              });
+            } else {
+              if (isStaple) stapleMissingCount++;
+              missing.push({
+                description: ing.description,
+                amount: ing.amount,
+                isStaple,
+              });
+            }
+          }
+
+          const totalCount = recipeIngredients.length;
+          const matchedCount = matched.length;
+          const missingCount = missing.length;
+
+          // Si el usuario configuró excludeStaplesFromMissing (por defecto true),
+          // los ingredientes básicos comunes (sal, agua, aceite) no suman a los faltantes reales
+          const effectiveMissingCount =
+            dto.excludeStaplesFromMissing !== false
+              ? Math.max(0, missingCount - stapleMissingCount)
+              : missingCount;
+
+          const matchPercentage = Math.round((matchedCount / totalCount) * 100);
+
+          // Filtro por porcentaje mínimo
+          if (
+            dto.minMatchPercentage !== undefined &&
+            matchPercentage < dto.minMatchPercentage
+          ) {
+            return null;
+          }
+
+          // Filtro por máximo de ingredientes faltantes permitidos
+          if (
+            dto.maxMissingIngredients !== undefined &&
+            effectiveMissingCount > dto.maxMissingIngredients
+          ) {
+            return null;
+          }
+
+          const recipeObj = recipe.toObject
+            ? recipe.toObject()
+            : { ...recipe };
+          delete recipeObj.steps;
+
+          return {
+            ...recipeObj,
+            totalIngredientsCount: totalCount,
+            matchedIngredientsCount: matchedCount,
+            matchedUserTagsCount: matchedUserTagsSet.size,
+            missingIngredientsCount: missingCount,
+            effectiveMissingCount,
+            matchPercentage,
+            matchedIngredients: matched,
+            missingIngredients: missing,
+          };
+        })
+        .filter((r): r is NonNullable<typeof r> => r !== null);
+
+      // Ordenar por compatibilidad:
+      // 1. Mayor cantidad de tags/ingredientes buscados presentes en la receta
+      // 2. Menos ingredientes faltantes reales (0 faltantes primero)
+      // 3. Mayor porcentaje de coincidencia
+      // 4. Mayor cantidad de ingredientes que coinciden
+      scoredRecipes.sort((a, b) => {
+        if (b.matchedUserTagsCount !== a.matchedUserTagsCount) {
+          return b.matchedUserTagsCount - a.matchedUserTagsCount;
+        }
+        if (a.effectiveMissingCount !== b.effectiveMissingCount) {
+          return a.effectiveMissingCount - b.effectiveMissingCount;
+        }
+        if (b.matchPercentage !== a.matchPercentage) {
+          return b.matchPercentage - a.matchPercentage;
+        }
+        return b.matchedIngredientsCount - a.matchedIngredientsCount;
+      });
+
+      // Paginación
+      const total = scoredRecipes.length;
+      const page = Number(dto.page || 1);
+      const limit = Number(dto.limit || 10);
+      const totalPages = Math.ceil(total / limit) || 1;
+      const startIndex = (page - 1) * limit;
+      const paginatedRecipes = scoredRecipes.slice(
+        startIndex,
+        startIndex + limit,
+      );
+
+      return {
+        recipes: paginatedRecipes,
+        total,
+        page,
+        totalPages,
+      };
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      throw new HttpException(
+        `Error al buscar recetas por ingredientes: ${error?.message || error}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+}
+
+/**
+ * Normaliza un término culinario: minúsculas, quita acentos/diacríticos y espacios sobrantes.
+ */
+function normalizeCulinaryText(text: string): string {
+  if (!text) return '';
+  return text
+    .toLowerCase()
+    .replace(/[áàäâ]/g, 'a')
+    .replace(/[éèëê]/g, 'e')
+    .replace(/[íìïî]/g, 'i')
+    .replace(/[óòöô]/g, 'o')
+    .replace(/[úùüû]/g, 'u')
+    .trim();
+}
+
+/**
+ * Construye un patrón regex insensible a tildes para consultar en MongoDB.
+ */
+function buildAccentInsensitiveRegexPattern(word: string): string {
+  const escaped = normalizeCulinaryText(word).replace(
+    /[.*+?^${}()|[\]\\]/g,
+    '\\$&',
+  );
+  return escaped
+    .replace(/a/g, '[aáàäâ]')
+    .replace(/e/g, '[eéèëê]')
+    .replace(/i/g, '[iíìïî]')
+    .replace(/o/g, '[oóòöô]')
+    .replace(/u/g, '[uúùüû]');
+}
+
+/**
+ * Extrae raíces o variantes básicas singular/plural para el término de búsqueda.
+ */
+function getWordVariants(word: string): string[] {
+  const clean = normalizeCulinaryText(word);
+  if (!clean || clean.length < 3) return clean ? [clean] : [];
+
+  const variants = new Set<string>();
+  variants.add(clean);
+
+  // Si termina en 'es' (tomates -> tomate)
+  if (clean.endsWith('es') && clean.length > 4) {
+    variants.add(clean.slice(0, -2));
+  }
+  // Si termina en 's' (huevos -> huevo, cebollas -> cebolla)
+  else if (clean.endsWith('s') && clean.length > 3) {
+    variants.add(clean.slice(0, -1));
+  } else {
+    // Si es singular, añadir plural común
+    variants.add(`${clean}s`);
+    variants.add(`${clean}es`);
+  }
+
+  return Array.from(variants);
+}
+
+const COMMON_PANTRY_STAPLES = [
+  'sal',
+  'agua',
+  'pimienta',
+  'aceite',
+  'aceite de oliva',
+  'aceite vegetal',
+  'sal y pimienta',
+  'sal marina',
+];
+
+function isStapleIngredient(normalizedDesc: string): boolean {
+  return COMMON_PANTRY_STAPLES.some((staple) => {
+    const stapleVariants = getWordVariants(staple);
+    return stapleVariants.some((v) => {
+      const regex = new RegExp(`(^|\\s|[.,;])${v}($|\\s|[.,;])`, 'i');
+      return regex.test(normalizedDesc);
+    });
+  });
 }

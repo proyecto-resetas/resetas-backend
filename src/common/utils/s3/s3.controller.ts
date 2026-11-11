@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Controller,
   Post,
   UploadedFile,
@@ -19,8 +20,30 @@ export class UploadS3Controller {
   @Post('upload')
   @ApiResponse({ status: 201, description: 'Created Recipe' })
   @ApiResponse({ status: 400, description: 'Dates invalid.' })
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: { fileSize: 10 * 1024 * 1024 },
+      fileFilter: (_req, file, callback) => {
+        const mime = (file?.mimetype || '').toLowerCase();
+        const name = (file?.originalname || '').toLowerCase();
+        const isImageMime = mime.startsWith('image/');
+        const isImageExt = /\.(jpe?g|png|webp|gif|heic|heif|bmp)$/i.test(name);
+        if (!isImageMime && !isImageExt) {
+          return callback(
+            new BadRequestException(
+              'Solo se permiten archivos de imagen válidos (JPG, PNG, WEBP, HEIC).',
+            ),
+            false,
+          );
+        }
+        callback(null, true);
+      },
+    }),
+  )
   async uploadImage(@UploadedFile() file) {
+    if (!file) {
+      throw new BadRequestException('No se recibió ningún archivo de imagen.');
+    }
     const imageUrl = await this.s3Service.uploadFile(file);
     return imageUrl;
   }

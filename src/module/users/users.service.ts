@@ -53,6 +53,25 @@ export class UserService {
     }
   }
 
+  async findOneByEmailPublic(email: string) {
+    try {
+      const user = await this.userModel
+        .findOne({ email })
+        .select('-password')
+        .exec();
+      if (!user) {
+        throw new HttpException(`User not found`, HttpStatus.NOT_FOUND);
+      }
+      return user;
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      throw new HttpException(
+        `Error fetching user`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
   async findOneByEmailRegister(email: string): Promise<User> {
     const user = await this.userModel.findOne({ email }).exec();
     if (user) {
@@ -63,12 +82,16 @@ export class UserService {
 
   async findOneById(id: string) {
     try {
-      const user = await this.userModel.findById(id).exec();
+      const user = await this.userModel
+        .findById(id)
+        .select('-password')
+        .exec();
       if (!user) {
         throw new HttpException(`User not found`, HttpStatus.NOT_FOUND);
       }
       return user;
     } catch (error) {
+      if (error instanceof HttpException) throw error;
       throw new HttpException(
         `Error fetching user`,
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -82,8 +105,21 @@ export class UserService {
       if (!user) {
         throw new HttpException(`User not found`, HttpStatus.NOT_FOUND);
       }
+
+      // Evitar escalación de privilegios o modificación de campos sensibles por PATCH /users/:id
+      const {
+        role: _ignoredRole,
+        password: _ignoredPassword,
+        email: _ignoredEmail,
+        myPurchased: _ignoredPurchased,
+        myFavorite: _ignoredFavorite,
+        myRecipe: _ignoredMyRecipe,
+        ...safeUpdate
+      } = (updateUserDto || {}) as Record<string, any>;
+
       const updatedUser = await this.userModel
-        .findByIdAndUpdate(id, updateUserDto, { new: true })
+        .findByIdAndUpdate(id, safeUpdate, { new: true })
+        .select('-password')
         .exec();
 
       if (!updatedUser) {
@@ -92,6 +128,7 @@ export class UserService {
 
       return updatedUser;
     } catch (error) {
+      if (error instanceof HttpException) throw error;
       throw new HttpException(
         `Error fetching user`,
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -337,15 +374,15 @@ export class UserService {
   }
 
   async updateUserRole(userId: string, role: string) {
-    const allowedRoles = ['user', 'admin', 'super_admin'];
-    if (!allowedRoles.includes(role)) {
+    const cleanRole = (role || '').trim();
+    if (!cleanRole) {
       throw new HttpException(
-        `Invalid role "${role}". Allowed: user, admin, super_admin`,
+        'El nombre del rol no puede estar vacío.',
         HttpStatus.BAD_REQUEST,
       );
     }
     const updated = await this.userModel
-      .findByIdAndUpdate(userId, { role }, { new: true })
+      .findByIdAndUpdate(userId, { role: cleanRole }, { new: true })
       .select('-password')
       .exec();
     if (!updated) {

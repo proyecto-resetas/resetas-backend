@@ -51,5 +51,33 @@ export class CreateUserDto {
 
   @ApiProperty()
   @IsString()
+  @IsOptional()
   role: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsObject()
+  bankAccount?: {
+    bankName?: string;
+    accountType?: string;
+    accountNumber?: string;
+    holderName?: string;
+    documentType?: string;
+    documentNumber?: string;
+  };
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsObject()
+  billingInfo?: {
+    personType?: string;
+    documentType?: string;
+    documentNumber?: string;
+    taxRegime?: string;
+    businessName?: string;
+    fiscalAddress?: string;
+    city?: string;
+    country?: string;
+    invoiceEmail?: string;
+  };
 }

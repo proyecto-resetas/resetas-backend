@@ -20,6 +20,7 @@ import { CreateRecipeDto } from './dto/create-recipe.dto';
 import { UpdateRecipeDto } from './dto/update-receta.dto';
 import { GetRecipesQueryDto } from './dto/get-recipe-query.dto';
 import { PurchaseRecipeDto } from './dto/purchase-recipe.dto';
+import { SearchByIngredientsDto } from './dto/search-by-ingredients.dto';
 import { Secure } from 'src/common/decorators/secure.decorator';
 import { UserRole } from 'src/common/guard/roles.enum';
 import { Recipe } from './entities/recipes.entity';
@@ -33,6 +34,7 @@ import {
   DocDeleteRecipe,
   DocGetIngredientsAndUtensils,
   DocPurchaseRecipe,
+  DocSearchByIngredients,
 } from './decorators/recipes-swagger.decorator';
 
 @ApiTags('recetas')
@@ -210,6 +212,15 @@ export class RecetasController {
     return this.recipesService.findRecipesCategory(filterDto);
   }
 
+  @Post('search-by-ingredients')
+  @Secure([UserRole.ADMIN, UserRole.USER], ['recipes:read'])
+  @DocSearchByIngredients()
+  async searchByIngredients(
+    @Body() searchDto: SearchByIngredientsDto,
+  ) {
+    return this.recipesService.searchByIngredients(searchDto);
+  }
+
   @Secure([UserRole.ADMIN, UserRole.USER], ['recipes:read'])
   @Get('all')
   @DocGetAllRecipes()
@@ -263,15 +274,28 @@ export class RecetasController {
   @Get(':id')
   @Secure([UserRole.ADMIN, UserRole.USER], ['recipes:read'])
   @DocGetRecipeById()
-  findOne(@Param('id') id: string) {
-    return this.recipesService.findOneById(id);
+  findOne(@Param('id') id: string, @Request() req: any) {
+    return this.recipesService.findOneByIdForUser(
+      id,
+      req.user?.sub,
+      req.user?.role,
+    );
   }
 
   @Patch('update/:id')
   @Secure([UserRole.ADMIN], ['recipes:update'])
   @DocUpdateRecipe()
-  update(@Param('id') id: string, @Body() updateRecetaDto: UpdateRecipeDto) {
-    return this.recipesService.update(id, updateRecetaDto);
+  update(
+    @Param('id') id: string,
+    @Body() updateRecetaDto: UpdateRecipeDto,
+    @Request() req: any,
+  ) {
+    return this.recipesService.update(
+      id,
+      updateRecetaDto,
+      req.user?.sub,
+      req.user?.role,
+    );
   }
 
   @Delete(':id')

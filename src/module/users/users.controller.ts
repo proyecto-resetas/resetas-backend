@@ -7,6 +7,7 @@ import {
   Param,
   Delete,
   Request,
+  ForbiddenException,
 } from '@nestjs/common';
 import { UserService } from './users.service';
 import { UpdateUserDto } from './dto';
@@ -49,21 +50,50 @@ export default class UsersController {
   @Secure([UserRole.ADMIN, UserRole.USER], ['users:read'])
   @Post(':email')
   @DocGetUserByEmail()
-  findOne(@Param('email') email: string) {
-    return this.userService.findOneByEmail(email);
+  async findOne(@Param('email') email: string, @Request() req: any) {
+    const user = await this.userService.findOneByEmailPublic(email);
+    if (
+      req.user?.role !== 'super_admin' &&
+      String((user as any)?._id || (user as any)?.id) !== String(req.user?.sub)
+    ) {
+      throw new ForbiddenException(
+        'No tienes permiso para consultar el perfil de otro usuario.',
+      );
+    }
+    return user;
   }
 
-  @Secure([UserRole.ADMIN, UserRole.USER], ['users:read'])
+  @Secure([UserRole.ADMIN, UserRole.USER])
   @Get(':id')
   @DocGetUserById()
-  findById(@Param('id') id: string) {
+  findById(@Param('id') id: string, @Request() req: any) {
+    if (
+      req.user?.role !== 'super_admin' &&
+      String(req.user?.sub) !== String(id)
+    ) {
+      throw new ForbiddenException(
+        'No tienes permiso para consultar el perfil de otro usuario.',
+      );
+    }
     return this.userService.findOneById(id);
   }
 
   @Patch(':id')
-  @Secure([UserRole.ADMIN, UserRole.USER], ['users:update'])
+  @Secure([UserRole.ADMIN, UserRole.USER])
   @DocUpdateUser()
-  update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
+  update(
+    @Param('id') id: string,
+    @Body() updateUserDto: UpdateUserDto,
+    @Request() req: any,
+  ) {
+    if (
+      req.user?.role !== 'super_admin' &&
+      String(req.user?.sub) !== String(id)
+    ) {
+      throw new ForbiddenException(
+        'No tienes permiso para modificar el perfil de otro usuario.',
+      );
+    }
     return this.userService.update(id, updateUserDto);
   }
 
@@ -93,9 +123,9 @@ export default class UsersController {
     return this.userService.addMyRecipe(userId, recipeId);
   }
 
-  // Agregar una receta a myPurchased
+  // Agregar una receta a myPurchased (restringido a SUPER_ADMIN; las compras normales usan POST /Recipes/purchase/:id)
   @Post('purchased-recipe/:recipeId')
-  @Secure([UserRole.ADMIN, UserRole.USER], ['users:create'])
+  @Secure([UserRole.SUPER_ADMIN])
   async addPurchasedRecipe(
     @Param('recipeId') recipeId: string,
     @Request() req: any,
@@ -131,7 +161,7 @@ export default class UsersController {
 
   // Eliminar una receta de myPurchased
   @Delete('purchased-recipe/:recipeId')
-  @Secure([UserRole.ADMIN, UserRole.USER], ['users:delete'])
+  @Secure([UserRole.SUPER_ADMIN])
   async removePurchasedRecipe(
     @Param('recipeId') recipeId: string,
     @Request() req: any,

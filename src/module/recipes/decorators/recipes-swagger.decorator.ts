@@ -10,6 +10,7 @@ import {
   CreateRecipeDto,
   UpdateRecipeDto,
   PurchaseRecipeDto,
+  SearchByIngredientsDto,
 } from '../dto';
 
 /**
@@ -624,3 +625,30 @@ export function DocPurchaseRecipe() {
     }),
   );
 }
+
+/**
+ * Decorador para documentar el endpoint de búsqueda de recetas por lista de ingredientes
+ */
+export function DocSearchByIngredients() {
+  return applyDecorators(
+    ApiOperation({
+      summary: 'Buscar recetas por lista de ingredientes de la despensa',
+      description:
+        'Busca y ordena recetas según la coincidencia con los ingredientes que el usuario tiene disponibles. Retorna porcentaje de coincidencia, ingredientes presentes e ingredientes faltantes.',
+    }),
+    ApiBody({ type: SearchByIngredientsDto }),
+    ApiResponse({
+      status: 200,
+      description: 'Lista de recetas ordenadas por compatibilidad y porcentaje de coincidencia',
+    }),
+    ApiResponse({
+      status: 400,
+      description: 'Datos de búsqueda inválidos',
+    }),
+    ApiResponse({
+      status: 500,
+      description: 'Error interno del servidor',
+    }),
+  );
+}
+

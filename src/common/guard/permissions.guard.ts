@@ -7,11 +7,11 @@ import {
 import { Reflector } from '@nestjs/core';
 import { PERMISSIONS_KEY } from '../decorators/permissions.decorator';
 import { RoleService } from 'src/module/roles/services/role.service';
+import { UserRole } from './roles.enum';
 
 /**
- * Guard que valida permisos resolviendo los del rol del usuario desde BD.
- * No usa permisos del JWT: el payload solo lleva el nombre del rol (user.role).
- * Los módulos que usen este guard deben importar RolesModule.
+ * Guard que valida permisos resolviendo los del rol del usuario desde MongoDB (con caché en memoria).
+ * Soporta comodines globales ('*'), por módulo ('recipes:*') y jerarquía de alcance ('recipes:update' cubre 'recipes:update:own').
  */
 @Injectable()
 export class PermissionsGuard implements CanActivate {
@@ -37,7 +37,12 @@ export class PermissionsGuard implements CanActivate {
       throw new ForbiddenException('Usuario no autenticado');
     }
 
-    // Resolver permisos del rol desde BD (no desde el JWT)
+    // Super Admin siempre tiene acceso total
+    if (user.role === UserRole.SUPER_ADMIN) {
+      return true;
+    }
+
+    // Resolver permisos activos del rol desde RoleService (Caché en memoria + MongoDB)
     const userPermissions: string[] =
       await this.roleService.getPermissionsByRoleName(user.role ?? '');
 
@@ -47,7 +52,7 @@ export class PermissionsGuard implements CanActivate {
 
     if (!hasAllPermissions) {
       throw new ForbiddenException(
-        `No tienes los permisos necesarios. Requeridos: ${requiredPermissions.join(', ')}`,
+        `No tienes los permisos necesarios en tu rol (${user.role}). Requeridos: ${requiredPermissions.join(', ')}`,
       );
     }
 
@@ -56,27 +61,36 @@ export class PermissionsGuard implements CanActivate {
 
   /**
    * Verifica si el usuario tiene un permiso específico
-   * Soporta wildcards: 'recipes:*' o '*'
+   * Soporta:
+   * - '*' (acceso total)
+   * - 'modulo:*' (ej: 'recipes:*' cubre 'recipes:create', 'recipes:update:own')
+   * - 'modulo:accion' cubre 'modulo:accion:own' (ej: 'recipes:update' cubre 'recipes:update:own')
+   * - coincidencia exacta
    */
   private checkPermission(
     userPermissions: string[],
     requiredPermission: string,
   ): boolean {
-    // Si el usuario tiene el permiso '*', tiene todos los permisos
     if (userPermissions.includes('*')) {
       return true;
     }
 
-    // Verificar permiso exacto
     if (userPermissions.includes(requiredPermission)) {
       return true;
     }
 
-    // Verificar permisos con wildcard (ej: 'recipes:*' cubre 'recipes:create', 'recipes:read', etc.)
-    const permissionParts = requiredPermission.split(':');
-    if (permissionParts.length > 0) {
-      const wildcardPermission = `${permissionParts[0]}:*`;
-      if (userPermissions.includes(wildcardPermission)) {
+    const parts = requiredPermission.split(':');
+    if (parts.length > 0) {
+      const moduleWildcard = `${parts[0]}:*`;
+      if (userPermissions.includes(moduleWildcard)) {
+        return true;
+      }
+    }
+
+    // Si se pide 'modulo:accion:own' y el rol tiene 'modulo:accion', también es válido
+    if (parts.length === 3 && parts[2] === 'own') {
+      const broaderPermission = `${parts[0]}:${parts[1]}`;
+      if (userPermissions.includes(broaderPermission)) {
         return true;
       }
     }

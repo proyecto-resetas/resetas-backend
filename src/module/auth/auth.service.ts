@@ -44,48 +44,48 @@ export class AuthService {
       await this.validateEmailForSignUp(userRegister.email);
 
       const hashedPassword = await this.hashService.hash(userRegister.password);
+      const safeRole = userRegister.role === 'admin' ? 'admin' : 'user';
 
-      if (userRegister.role === 'admin' || 'user') {
-        const code = Math.floor(100000 + Math.random() * 900000).toString();
-        const expiresAt = new Date();
-        expiresAt.setMinutes(expiresAt.getMinutes() + 10);
+      const code = Math.floor(100000 + Math.random() * 900000).toString();
+      const expiresAt = new Date();
+      expiresAt.setMinutes(expiresAt.getMinutes() + 10);
 
-        await this.otpModel.deleteMany({
-          email: userRegister.email,
-          verified: false,
-        });
+      await this.otpModel.deleteMany({
+        email: userRegister.email,
+        verified: false,
+      });
 
-        const otpRecord = await this.otpModel.create({
-          email: userRegister.email,
+      const otpRecord = await this.otpModel.create({
+        email: userRegister.email,
+        code,
+        expiresAt,
+        verified: false,
+        attempts: 0,
+        type: 'register',
+        pendingUserData: {
+          ...userRegister,
+          role: safeRole,
+          password: hashedPassword,
+        },
+      });
+
+      try {
+        await this.brevoService.sendOtpEmail(
+          userRegister.email,
           code,
-          expiresAt,
-          verified: false,
-          attempts: 0,
-          type: 'register',
-          pendingUserData: {
-            ...userRegister,
-            password: hashedPassword,
-          },
-        });
-
-        try {
-          await this.brevoService.sendOtpEmail(
-            userRegister.email,
-            code,
-            'register',
-          );
-        } catch (emailError) {
-          await this.otpModel.deleteOne({ _id: otpRecord._id });
-          throw emailError;
-        }
-
-        return {
-          message:
-            'Código OTP enviado exitosamente al email. Verifica el código para completar el registro.',
-          email: userRegister.email,
-          role: userRegister.role,
-        };
+          'register',
+        );
+      } catch (emailError) {
+        await this.otpModel.deleteOne({ _id: otpRecord._id });
+        throw emailError;
       }
+
+      return {
+        message:
+          'Código OTP enviado exitosamente al email. Verifica el código para completar el registro.',
+        email: userRegister.email,
+        role: safeRole,
+      };
     } catch (error) {
       console.error('Error during user registration:', error);
       if (error instanceof HttpException) {

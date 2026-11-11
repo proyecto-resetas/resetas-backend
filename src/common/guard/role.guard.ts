@@ -9,6 +9,7 @@ import { Reflector } from '@nestjs/core';
 import { Observable } from 'rxjs';
 import { UserRole } from './roles.enum';
 import { ROLES_KEY } from '../decorators/roleGuard.decorator';
+import { PERMISSIONS_KEY } from '../decorators/permissions.decorator';
 
 @Injectable()
 export class UserRoleGuard implements CanActivate {
@@ -22,6 +23,11 @@ export class UserRoleGuard implements CanActivate {
       context.getClass(),
     ]);
 
+    const requiredPermissions = this.reflector.getAllAndOverride<string[]>(
+      PERMISSIONS_KEY,
+      [context.getHandler(), context.getClass()],
+    );
+
     if (!validRoles || validRoles.length === 0) return true;
 
     const req = context.switchToHttp().getRequest();
@@ -30,8 +36,20 @@ export class UserRoleGuard implements CanActivate {
     if (!user)
       throw new BadRequestException('User not found or not authenticated');
 
-    // El rol super_admin tiene jerarquía superior sobre todos los endpoints
-    if (user.role === UserRole.SUPER_ADMIN || validRoles.includes(user.role)) {
+    // 1. El rol super_admin tiene jerarquía superior sobre todos los endpoints
+    if (user.role === UserRole.SUPER_ADMIN) {
+      return true;
+    }
+
+    // 2. Si el endpoint define permisos granulares en BD (PERMISSIONS_KEY),
+    // delegamos la decisión final a PermissionsGuard para que cualquier rol que tenga
+    // el permiso asignado en MongoDB pueda acceder dinámicamente sin bloqueo rígido.
+    if (requiredPermissions && requiredPermissions.length > 0) {
+      return true;
+    }
+
+    // 3. Si el endpoint solo define roles (sin permisos asociados), validamos el rol directamente
+    if (validRoles.includes(user.role)) {
       return true;
     }
 

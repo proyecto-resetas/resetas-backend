@@ -4,3 +4,4 @@ export * from './get-recipe-query.dto';
 export * from './ingredients-recipes.dto';
 export * from './utensil-recipe.dto';
 export * from './purchase-recipe.dto';
+export * from './search-by-ingredients.dto';

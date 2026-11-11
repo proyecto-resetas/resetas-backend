@@ -1,4 +1,5 @@
 import {
+  ForbiddenException,
   HttpException,
   HttpStatus,
   Injectable,
@@ -37,7 +38,34 @@ export class StepsService {
     return step;
   }
 
-  async update(id: string, updateStepDto: UpdateStepDto) {
+  private async verifyStepOwnership(
+    stepId: string,
+    userId?: string,
+    userRole?: string,
+  ): Promise<void> {
+    if (userRole === 'super_admin') return;
+    const parentRecipe = await this.recipeModel
+      .findOne({ steps: stepId })
+      .select('createdBy')
+      .exec();
+    if (!parentRecipe) return;
+    const creatorId = String(
+      (parentRecipe.createdBy as any)?._id || parentRecipe.createdBy || '',
+    );
+    if (!userId || creatorId !== String(userId)) {
+      throw new ForbiddenException(
+        'No tienes permiso para modificar o eliminar pasos de una receta que no creaste.',
+      );
+    }
+  }
+
+  async update(
+    id: string,
+    updateStepDto: UpdateStepDto,
+    userId?: string,
+    userRole?: string,
+  ) {
+    await this.verifyStepOwnership(id, userId, userRole);
     const step = await this.stepModel
       .findByIdAndUpdate(id, updateStepDto, { new: true })
       .exec();
@@ -70,17 +98,20 @@ export class StepsService {
       throw new NotFoundException(`La receta con id ${recipeId} no existe`);
     }
 
-    // 2. Verificar si el usuario tiene la receta en 'myPurchased', en 'myRecipe', es el creador o es super_admin
+    // 2. Verificar si la receta es gratuita (price <= 0), si el usuario la compró ('myPurchased'), es el creador o es super_admin
+    const isFreeRecipe = Number(recipe.price ?? 0) <= 0;
     const isInMyPurchased = user.myPurchased?.some(
-      (r) => r.idRecipe === recipeId,
+      (r) => String(r.idRecipe) === String(recipeId),
     );
-    const isInMyRecipes = user.myRecipe?.some((r) => r.idRecipe === recipeId);
-    const isCreator = recipe.createdBy?.toString() === userId;
+    const creatorId = String(
+      (recipe.createdBy as any)?._id || recipe.createdBy || '',
+    );
+    const isCreator = Boolean(userId) && creatorId === String(userId);
     const isSuperAdmin = user.role === 'super_admin';
 
-    if (!isInMyPurchased && !isInMyRecipes && !isCreator && !isSuperAdmin) {
+    if (!isFreeRecipe && !isInMyPurchased && !isCreator && !isSuperAdmin) {
       throw new HttpException(
-        'No tienes permiso para ver los pasos de esta receta. Debes comprarla o tenerla en tu lista primero.',
+        'No tienes permiso para ver los pasos de esta receta. Debes comprarla primero.',
         HttpStatus.FORBIDDEN,
       );
     }
@@ -93,16 +124,18 @@ export class StepsService {
     await this.stepModel.deleteMany({ _id: { $in: ids } }).exec();
   }
 
-  async remove(id: string) {
+  async remove(id: string, userId?: string, userRole?: string) {
     try {
-      const deleteUser = await this.stepModel.findByIdAndDelete(id).exec();
+      await this.verifyStepOwnership(id, userId, userRole);
+      const deleteStep = await this.stepModel.findByIdAndDelete(id).exec();
 
-      if (!deleteUser) {
+      if (!deleteStep) {
         throw new NotFoundException(`Step with id ${id} not found`);
       }
 
-      return deleteUser;
+      return deleteStep;
     } catch (error) {
+      if (error instanceof HttpException) throw error;
       throw new HttpException(
         `Error fetching steps`,
         HttpStatus.INTERNAL_SERVER_ERROR,

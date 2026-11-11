@@ -95,6 +95,56 @@ export class User extends Document {
   @IsArray()
   @Prop({ type: [String], default: [] })
   fcmTokens?: string[];
+
+  // Datos de cuenta bancaria para desembolsos y transferencias
+  @IsOptional()
+  @Prop({
+    type: {
+      bankName: { type: String, default: '' },
+      accountType: { type: String, default: '' },
+      accountNumber: { type: String, default: '' },
+      holderName: { type: String, default: '' },
+      documentType: { type: String, default: '' },
+      documentNumber: { type: String, default: '' },
+    },
+    default: null,
+  })
+  bankAccount?: {
+    bankName?: string;
+    accountType?: string;
+    accountNumber?: string;
+    holderName?: string;
+    documentType?: string;
+    documentNumber?: string;
+  };
+
+  // Datos de facturación e identificación fiscal
+  @IsOptional()
+  @Prop({
+    type: {
+      personType: { type: String, default: '' },
+      documentType: { type: String, default: '' },
+      documentNumber: { type: String, default: '' },
+      taxRegime: { type: String, default: '' },
+      businessName: { type: String, default: '' },
+      fiscalAddress: { type: String, default: '' },
+      city: { type: String, default: '' },
+      country: { type: String, default: '' },
+      invoiceEmail: { type: String, default: '' },
+    },
+    default: null,
+  })
+  billingInfo?: {
+    personType?: string;
+    documentType?: string;
+    documentNumber?: string;
+    taxRegime?: string;
+    businessName?: string;
+    fiscalAddress?: string;
+    city?: string;
+    country?: string;
+    invoiceEmail?: string;
+  };
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
