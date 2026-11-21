@@ -22,16 +22,18 @@ export class UploadS3Controller {
   @ApiResponse({ status: 400, description: 'Dates invalid.' })
   @UseInterceptors(
     FileInterceptor('file', {
-      limits: { fileSize: 10 * 1024 * 1024 },
+      limits: { fileSize: 50 * 1024 * 1024 }, // Hasta 50MB para soportar imágenes y videos
       fileFilter: (_req, file, callback) => {
         const mime = (file?.mimetype || '').toLowerCase();
         const name = (file?.originalname || '').toLowerCase();
         const isImageMime = mime.startsWith('image/');
+        const isVideoMime = mime.startsWith('video/');
         const isImageExt = /\.(jpe?g|png|webp|gif|heic|heif|bmp)$/i.test(name);
-        if (!isImageMime && !isImageExt) {
+        const isVideoExt = /\.(mp4|mov|avi|mkv|webm)$/i.test(name);
+        if (!isImageMime && !isImageExt && !isVideoMime && !isVideoExt) {
           return callback(
             new BadRequestException(
-              'Solo se permiten archivos de imagen válidos (JPG, PNG, WEBP, HEIC).',
+              'Solo se permiten archivos multimedia válidos (imágenes o videos).',
             ),
             false,
           );
@@ -42,7 +44,7 @@ export class UploadS3Controller {
   )
   async uploadImage(@UploadedFile() file) {
     if (!file) {
-      throw new BadRequestException('No se recibió ningún archivo de imagen.');
+      throw new BadRequestException('No se recibió ningún archivo multimedia.');
     }
     const imageUrl = await this.s3Service.uploadFile(file);
     return imageUrl;
